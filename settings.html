@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="sage-mist">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,11 +26,12 @@
                 <a href="settings.html" class="nav-link active">Settings</a>
             </nav>
             <div class="nav-actions">
-                <button type="button" id="theme-toggle" class="icon-btn" title="Switch Theme">☾</button>
+                <button type="button" id="theme-toggle" class="icon-btn" title="Quick Light/Dark Switch">☾</button>
             </div>
         </header>
 
         <main class="stack-layout">
+            <!-- 1. Timer Settings -->
             <section class="card">
                 <h2 class="card-title">TIMER DURATIONS (MINUTES)</h2>
                 <form id="settings-form" class="settings-form">
@@ -73,6 +74,55 @@
                 </form>
             </section>
 
+            <!-- 2. 10 Soothing Luminous Themes -->
+            <section class="card">
+                <h2 class="card-title">SOOTHING THEME PALETTE (10 THEMES)</h2>
+                <p class="muted-text" style="margin-bottom: 14px;">Pick any light or dark ambient glow theme. Saved automatically across all pages.</p>
+                <div class="theme-grid" id="theme-picker">
+                    <button type="button" class="theme-card" data-theme-pick="sage-mist">
+                        <span class="swatch" style="background: linear-gradient(135deg, #d7f2e8, #4c8f78);"></span>
+                        <span>Sage Mist</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="ocean-breeze">
+                        <span class="swatch" style="background: linear-gradient(135deg, #d6eefc, #3b82b6);"></span>
+                        <span>Ocean Breeze</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="lavender-cloud">
+                        <span class="swatch" style="background: linear-gradient(135deg, #eae2fc, #7c67c4);"></span>
+                        <span>Lavender Cloud</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="warm-peach">
+                        <span class="swatch" style="background: linear-gradient(135deg, #fce7d6, #c97b4b);"></span>
+                        <span>Warm Peach</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="rose-quartz">
+                        <span class="swatch" style="background: linear-gradient(135deg, #fae0e8, #bd6582);"></span>
+                        <span>Rose Quartz</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="midnight-pine">
+                        <span class="swatch" style="background: linear-gradient(135deg, #162923, #72bda5);"></span>
+                        <span>Midnight Pine</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="deep-ocean">
+                        <span class="swatch" style="background: linear-gradient(135deg, #102136, #5eb8e6);"></span>
+                        <span>Deep Ocean</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="twilight-plum">
+                        <span class="swatch" style="background: linear-gradient(135deg, #1f172e, #a58be8);"></span>
+                        <span>Twilight Plum</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="amber-dusk">
+                        <span class="swatch" style="background: linear-gradient(135deg, #291e16, #dfa066);"></span>
+                        <span>Amber Dusk</span>
+                    </button>
+                    <button type="button" class="theme-card" data-theme-pick="nordic-slate">
+                        <span class="swatch" style="background: linear-gradient(135deg, #161d26, #7ea8c7);"></span>
+                        <span>Nordic Slate</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 3. Desktop Notifications -->
             <section class="card">
                 <h2 class="card-title">DESKTOP NOTIFICATIONS</h2>
                 <p id="notify-status" class="muted-text">Checking browser support...</p>
@@ -80,9 +130,44 @@
                     Enable Notifications
                 </button>
             </section>
+
+            <!-- 4. Gmail Login (Directly Above Send Feedback) -->
+            <section class="card">
+                <h2 class="card-title">ACCOUNT & GMAIL LOGIN</h2>
+                <p id="auth-status" class="muted-text" style="margin-bottom: 14px;">Sign in with Gmail to link your focus sessions to your personal account.</p>
+                <div class="auth-actions">
+                    <button type="button" id="btn-google-login" class="btn-google">
+                        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1C3.3 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.3 14.2c-.2-.7-.4-1.5-.4-2.2s.1-1.5.4-2.2V6.7H1.3C.5 8.3 0 10.1 0 12s.5 3.7 1.3 5.3l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4C18 1.2 15.2 0 12 0 7.3 0 3.3 2.7 1.3 6.7l4 3.1c.9-2.9 3.6-5 6.7-5z"/></svg>
+                        Continue with Gmail
+                    </button>
+                    <button type="button" id="btn-google-logout" class="btn-danger-sm hidden" style="height: 46px; padding: 0 18px;">
+                        Sign Out
+                    </button>
+                </div>
+                <p id="auth-feedback" class="feedback-msg" style="margin-top: 8px;"></p>
+            </section>
+
+            <!-- 5. Send Feedback (At Bottom of Settings) -->
+            <section class="card">
+                <h2 class="card-title">SEND FEEDBACK</h2>
+                <p class="muted-text" style="margin-bottom: 14px;">Tell us what you love or what we should improve next.</p>
+                <form id="settings-feedback-form" class="feedback-form">
+                    <div class="rating-row" data-rating-group="settings">
+                        <button type="button" class="rate-btn" data-val="1">1 ★</button>
+                        <button type="button" class="rate-btn" data-val="2">2 ★</button>
+                        <button type="button" class="rate-btn" data-val="3">3 ★</button>
+                        <button type="button" class="rate-btn" data-val="4">4 ★</button>
+                        <button type="button" class="rate-btn active" data-val="5">5 ★</button>
+                    </div>
+                    <textarea id="settings-fb-text" rows="4" placeholder="Write your feedback here..." required></textarea>
+                    <button type="submit" class="btn-primary" style="max-width: 260px;">SEND FEEDBACK</button>
+                    <p id="settings-fb-status" class="feedback-msg"></p>
+                </form>
+            </section>
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
 </html>
