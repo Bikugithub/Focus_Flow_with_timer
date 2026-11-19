@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow | Settings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="floating-layer" aria-hidden="true">
+        <svg class="float-icon f-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <svg class="float-icon f-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3c-4 4-6 7.5-6 11a6 6 0 0 0 12 0c0-3.5-2-7-6-11z"/></svg>
+        <svg class="float-icon f-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
+        <svg class="float-icon f-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <svg class="float-icon f-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/></svg>
+        <svg class="float-icon f-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </div>
+
+    <div class="app-shell">
+        <header class="navbar">
+            <a href="index.html" class="brand">FOCUSFLOW</a>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Timer</a>
+                <a href="history.html" class="nav-link">History</a>
+                <a href="analytics.html" class="nav-link">Analytics</a>
+                <a href="settings.html" class="nav-link active">Settings</a>
+            </nav>
+            <div class="nav-actions">
+                <button type="button" id="theme-toggle" class="icon-btn" title="Switch Theme">☾</button>
+            </div>
+        </header>
+
+        <main class="stack-layout">
+            <section class="card">
+                <h2 class="card-title">TIMER DURATIONS (MINUTES)</h2>
+                <form id="settings-form" class="settings-form">
+                    <div class="form-grid-3">
+                        <div class="field">
+                            <label for="set-focus">Focus</label>
+                            <input type="number" id="set-focus" min="1" max="120" required>
+                        </div>
+                        <div class="field">
+                            <label for="set-short">Short Break</label>
+                            <input type="number" id="set-short" min="1" max="60" required>
+                        </div>
+                        <div class="field">
+                            <label for="set-long">Long Break</label>
+                            <input type="number" id="set-long" min="1" max="60" required>
+                        </div>
+                    </div>
+
+                    <div class="toggle-row">
+                        <div>
+                            <strong>Gentle Audio Chime</strong>
+                            <p class="muted-text">Play a soft harmonic tone when a timer finishes.</p>
+                        </div>
+                        <input type="checkbox" id="set-sound" class="checkbox-lg">
+                    </div>
+
+                    <div class="toggle-row">
+                        <div>
+                            <strong>Auto-Start Next Session</strong>
+                            <p class="muted-text">Automatically begin the next break or focus block.</p>
+                        </div>
+                        <input type="checkbox" id="set-autostart" class="checkbox-lg">
+                    </div>
+
+                    <div class="settings-actions">
+                        <button type="submit" class="btn-primary">SAVE SETTINGS</button>
+                        <button type="button" id="btn-test-sound" class="btn-secondary">TEST CHIME</button>
+                    </div>
+                    <p id="save-feedback" class="feedback-msg"></p>
+                </form>
+            </section>
+
+            <section class="card">
+                <h2 class="card-title">DESKTOP NOTIFICATIONS</h2>
+                <p id="notify-status" class="muted-text">Checking browser support...</p>
+                <button type="button" id="btn-request-notify" class="btn-outline" style="margin-top: 12px; max-width: 300px;">
+                    Enable Notifications
+                </button>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
