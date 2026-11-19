@@ -31,31 +31,43 @@
         </header>
 
         <main class="stack-layout">
-            <!-- 1. Timer Settings -->
+            <!-- 1. Timer & Sound Settings -->
             <section class="card">
-                <h2 class="card-title">TIMER DURATIONS (MINUTES)</h2>
+                <h2 class="card-title">TIMER & SOUND SETTINGS</h2>
                 <form id="settings-form" class="settings-form">
                     <div class="form-grid-3">
                         <div class="field">
-                            <label for="set-focus">Focus</label>
+                            <label for="set-focus">Focus (min)</label>
                             <input type="number" id="set-focus" min="1" max="120" required>
                         </div>
                         <div class="field">
-                            <label for="set-short">Short Break</label>
+                            <label for="set-short">Short Break (min)</label>
                             <input type="number" id="set-short" min="1" max="60" required>
                         </div>
                         <div class="field">
-                            <label for="set-long">Long Break</label>
+                            <label for="set-long">Long Break (min)</label>
                             <input type="number" id="set-long" min="1" max="60" required>
                         </div>
                     </div>
 
                     <div class="toggle-row">
                         <div>
-                            <strong>Gentle Audio Chime</strong>
-                            <p class="muted-text">Play a soft harmonic tone when a timer finishes.</p>
+                            <strong>Gentle Audio Alert</strong>
+                            <p class="muted-text">Play a calming sound when a timer finishes.</p>
                         </div>
                         <input type="checkbox" id="set-sound" class="checkbox-lg">
+                    </div>
+
+                    <div class="field">
+                        <label for="set-sound-type">Completion Sound</label>
+                        <select id="set-sound-type">
+                            <option value="chime">Harmonic Chime (Default)</option>
+                            <option value="bowl">Tibetan Singing Bowl</option>
+                            <option value="crystal">Crystal Wind Chimes</option>
+                            <option value="gong">Soft Zen Gong</option>
+                            <option value="harp">Morning Harp</option>
+                            <option value="drops">Calm Water Drops</option>
+                        </select>
                     </div>
 
                     <div class="toggle-row">
@@ -68,7 +80,7 @@
 
                     <div class="settings-actions">
                         <button type="submit" class="btn-primary">SAVE SETTINGS</button>
-                        <button type="button" id="btn-test-sound" class="btn-secondary">TEST CHIME</button>
+                        <button type="button" id="btn-test-sound" class="btn-secondary">TEST SOUND</button>
                     </div>
                     <p id="save-feedback" class="feedback-msg"></p>
                 </form>
@@ -131,7 +143,7 @@
                 </button>
             </section>
 
-            <!-- 4. Gmail Login (Directly Above Send Feedback) -->
+            <!-- 4. Gmail Login -->
             <section class="card">
                 <h2 class="card-title">ACCOUNT & GMAIL LOGIN</h2>
                 <p id="auth-status" class="muted-text" style="margin-bottom: 14px;">Sign in with Gmail to link your focus sessions to your personal account.</p>
@@ -147,7 +159,7 @@
                 <p id="auth-feedback" class="feedback-msg" style="margin-top: 8px;"></p>
             </section>
 
-            <!-- 5. Send Feedback (At Bottom of Settings) -->
+            <!-- 5. Send Feedback -->
             <section class="card">
                 <h2 class="card-title">SEND FEEDBACK</h2>
                 <p class="muted-text" style="margin-bottom: 14px;">Tell us what you love or what we should improve next.</p>
