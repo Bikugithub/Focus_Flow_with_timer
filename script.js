@@ -2,7 +2,7 @@
 // SUPABASE CLOUD CONFIGURATION
 // ==========================================
 const SUPABASE_URL = "https://dsizxvpmmslojmrbfgkn.supabase.co";
-const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+const SUPABASE_KEY = "sb_publishable_IJHDHcuv4E92j8ZWSc6blA_BSb04AgZ";
 
 const db = (window.supabase && SUPABASE_KEY !== "PASTE_YOUR_PUBLISHABLE_KEY_HERE")
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
