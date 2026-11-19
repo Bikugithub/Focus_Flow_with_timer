@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="sage-mist">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,12 +26,35 @@
             </div>
             <p class="muted-text" style="margin-bottom: 14px;">Everything you need to run calm, distraction-free sessions:</p>
             <ol class="guide-steps">
-                <li><strong>Pick a Mode & Label:</strong> Choose Focus, Short Break, or Long Break, then tap a label (like <em>Study</em> or <em>Coding</em>) and add an optional note.</li>
+                <li><strong>Pick a Mode & Label:</strong> Choose Focus, Short Break, or Long Break, tap a label, and add an optional note.</li>
                 <li><strong>Start & Stay Calm:</strong> Hit <strong>START</strong>. The timer stays accurate even if you switch tabs or pages.</li>
                 <li><strong>Finish & Reflect:</strong> When time ends, a soft chime plays, a desktop alert triggers, and a motivational quote appears.</li>
-                <li><strong>Review Utilities:</strong> Open <strong>History</strong> to search/filter saved sessions by label, <strong>Analytics</strong> for 7-day charts, and <strong>Settings</strong> to customize minutes.</li>
+                <li><strong>Customize & Sync:</strong> Open <strong>Settings</strong> for 10 soothing themes, Gmail login, and feedback.</li>
             </ol>
             <button type="button" id="btn-close-guide" class="btn-primary" style="width: 100%; margin-top: 18px;">Got It, Let's Focus</button>
+        </div>
+    </div>
+
+    <!-- Feedback Modal (Triggered from Opening Tab Icon) -->
+    <div id="feedback-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="fb-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="fb-modal-title">Send Feedback</h2>
+                <button type="button" id="btn-close-fb-x" class="icon-btn-sm" aria-label="Close Feedback">✕</button>
+            </div>
+            <p class="muted-text" style="margin-bottom: 14px;">Share ideas, bugs, or how FocusFlow feels to use.</p>
+            <form id="modal-feedback-form" class="feedback-form">
+                <div class="rating-row" data-rating-group="modal">
+                    <button type="button" class="rate-btn" data-val="1">1 ★</button>
+                    <button type="button" class="rate-btn" data-val="2">2 ★</button>
+                    <button type="button" class="rate-btn" data-val="3">3 ★</button>
+                    <button type="button" class="rate-btn" data-val="4">4 ★</button>
+                    <button type="button" class="rate-btn active" data-val="5">5 ★</button>
+                </div>
+                <textarea id="modal-fb-text" rows="4" placeholder="Write your feedback here..." required></textarea>
+                <button type="submit" class="btn-primary" style="width: 100%;">SUBMIT FEEDBACK</button>
+                <p id="modal-fb-status" class="feedback-msg"></p>
+            </form>
         </div>
     </div>
 
@@ -45,12 +68,15 @@
                 <a href="settings.html" class="nav-link">Settings</a>
             </nav>
             <div class="nav-actions">
+                <button type="button" id="btn-open-feedback" class="icon-btn" title="Send Feedback" aria-label="Send Feedback">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
                 <button type="button" id="btn-open-guide" class="icon-btn" title="Quick Guide">?</button>
-                <button type="button" id="theme-toggle" class="icon-btn" title="Switch Theme">☾</button>
+                <button type="button" id="theme-toggle" class="icon-btn" title="Quick Light/Dark Switch">☾</button>
             </div>
         </header>
 
-        <!-- Motivational Quote Banner (Appears on Timer Completion) -->
+        <!-- Motivational Quote Banner -->
         <section id="quote-banner" class="card quote-banner hidden">
             <div class="quote-content">
                 <span class="quote-tag">SESSION COMPLETE</span>
@@ -141,6 +167,8 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
-</html>
+                    </html>
+                    
