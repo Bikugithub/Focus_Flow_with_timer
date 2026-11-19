@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow | Time History</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="floating-layer" aria-hidden="true">
+        <svg class="float-icon f-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <svg class="float-icon f-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3c-4 4-6 7.5-6 11a6 6 0 0 0 12 0c0-3.5-2-7-6-11z"/></svg>
+        <svg class="float-icon f-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
+        <svg class="float-icon f-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <svg class="float-icon f-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/></svg>
+        <svg class="float-icon f-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </div>
+
+    <div class="app-shell">
+        <header class="navbar">
+            <a href="index.html" class="brand">FOCUSFLOW</a>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Timer</a>
+                <a href="history.html" class="nav-link active">History</a>
+                <a href="analytics.html" class="nav-link">Analytics</a>
+                <a href="settings.html" class="nav-link">Settings</a>
+            </nav>
+            <div class="nav-actions">
+                <button type="button" id="theme-toggle" class="icon-btn" title="Switch Theme">☾</button>
+            </div>
+        </header>
+
+        <main class="stack-layout">
+            <section class="card">
+                <div class="card-header-row">
+                    <div>
+                        <h1 class="page-heading">Saved Time History</h1>
+                        <p class="muted-text">All completed focus sessions saved with their labels and timestamps.</p>
+                    </div>
+                    <button type="button" id="btn-clear-history" class="btn-danger-sm">Clear All</button>
+                </div>
+
+                <div class="history-filters">
+                    <input type="search" id="history-search" placeholder="Search by note or label...">
+                    <select id="history-label-filter">
+                        <option value="ALL">All Labels</option>
+                        <option value="Study">Study</option>
+                        <option value="Coding">Coding</option>
+                        <option value="Reading">Reading</option>
+                        <option value="Work">Work</option>
+                        <option value="General">General</option>
+                    </select>
+                </div>
+
+                <div class="history-summary-bar">
+                    <span id="history-count-text">0 sessions shown</span>
+                    <strong id="history-total-text">0 min total</strong>
+                </div>
+
+                <div id="full-history-list" class="log-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
