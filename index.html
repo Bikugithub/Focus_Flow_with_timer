@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow | Timer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Subtle Floating Ambient Icons -->
+    <div class="floating-layer" aria-hidden="true">
+        <svg class="float-icon f-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <svg class="float-icon f-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3c-4 4-6 7.5-6 11a6 6 0 0 0 12 0c0-3.5-2-7-6-11z"/></svg>
+        <svg class="float-icon f-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
+        <svg class="float-icon f-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <svg class="float-icon f-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/></svg>
+        <svg class="float-icon f-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </div>
+
+    <!-- First-Visit Quick Guide Modal -->
+    <div id="guide-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="guide-title">Quick Guide to FocusFlow</h2>
+                <button type="button" id="btn-close-guide-x" class="icon-btn-sm" aria-label="Close Guide">✕</button>
+            </div>
+            <p class="muted-text" style="margin-bottom: 14px;">Everything you need to run calm, distraction-free sessions:</p>
+            <ol class="guide-steps">
+                <li><strong>Pick a Mode & Label:</strong> Choose Focus, Short Break, or Long Break, then tap a label (like <em>Study</em> or <em>Coding</em>) and add an optional note.</li>
+                <li><strong>Start & Stay Calm:</strong> Hit <strong>START</strong>. The timer stays accurate even if you switch tabs or pages.</li>
+                <li><strong>Finish & Reflect:</strong> When time ends, a soft chime plays, a desktop alert triggers, and a motivational quote appears.</li>
+                <li><strong>Review Utilities:</strong> Open <strong>History</strong> to search/filter saved sessions by label, <strong>Analytics</strong> for 7-day charts, and <strong>Settings</strong> to customize minutes.</li>
+            </ol>
+            <button type="button" id="btn-close-guide" class="btn-primary" style="width: 100%; margin-top: 18px;">Got It, Let's Focus</button>
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <header class="navbar">
+            <a href="index.html" class="brand">FOCUSFLOW</a>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link active">Timer</a>
+                <a href="history.html" class="nav-link">History</a>
+                <a href="analytics.html" class="nav-link">Analytics</a>
+                <a href="settings.html" class="nav-link">Settings</a>
+            </nav>
+            <div class="nav-actions">
+                <button type="button" id="btn-open-guide" class="icon-btn" title="Quick Guide">?</button>
+                <button type="button" id="theme-toggle" class="icon-btn" title="Switch Theme">☾</button>
+            </div>
+        </header>
+
+        <!-- Motivational Quote Banner (Appears on Timer Completion) -->
+        <section id="quote-banner" class="card quote-banner hidden">
+            <div class="quote-content">
+                <span class="quote-tag">SESSION COMPLETE</span>
+                <p id="quote-text" class="quote-text"></p>
+                <span id="quote-author" class="quote-author"></span>
+            </div>
+            <button type="button" id="btn-dismiss-quote" class="icon-btn-sm" aria-label="Dismiss Quote">✕</button>
+        </section>
+
+        <main class="timer-layout">
+            <!-- Left: Main Timer Card -->
+            <section class="card timer-card">
+                <div class="mode-switcher">
+                    <button type="button" class="mode-btn active" data-mode="focus">Focus</button>
+                    <button type="button" class="mode-btn" data-mode="short">Short Break</button>
+                    <button type="button" class="mode-btn" data-mode="long">Long Break</button>
+                </div>
+
+                <div class="ring-wrapper">
+                    <svg class="progress-ring" viewBox="0 0 260 260">
+                        <circle class="ring-bg" cx="130" cy="130" r="118"></circle>
+                        <circle id="ring-progress" class="ring-fg" cx="130" cy="130" r="118"></circle>
+                    </svg>
+                    <div class="ring-center">
+                        <div id="timer-display" class="time-text">25:00</div>
+                        <div id="timer-status" class="status-text">READY</div>
+                    </div>
+                </div>
+
+                <!-- Session Label Selector -->
+                <div class="label-picker">
+                    <span class="field-caption">SESSION LABEL</span>
+                    <div class="pill-group" id="label-pills">
+                        <button type="button" class="label-pill active" data-label="Study">Study</button>
+                        <button type="button" class="label-pill" data-label="Coding">Coding</button>
+                        <button type="button" class="label-pill" data-label="Reading">Reading</button>
+                        <button type="button" class="label-pill" data-label="Work">Work</button>
+                        <button type="button" class="label-pill" data-label="General">General</button>
+                    </div>
+                </div>
+
+                <div class="task-box">
+                    <input type="text" id="task-input" placeholder="Session note (e.g., Chapter 4 revision)" autocomplete="off">
+                </div>
+
+                <div class="controls">
+                    <button type="button" id="btn-start-pause" class="btn-primary">START</button>
+                    <button type="button" id="btn-reset" class="btn-secondary">RESET</button>
+                </div>
+            </section>
+
+            <!-- Right: Today's Overview & Utilities -->
+            <aside class="side-stack">
+                <section class="card">
+                    <h2 class="card-title">TODAY'S OVERVIEW</h2>
+                    <div class="mini-stats">
+                        <div class="stat-tile">
+                            <span class="stat-label">MINUTES</span>
+                            <strong id="today-minutes" class="stat-val">0</strong>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-label">SESSIONS</span>
+                            <strong id="today-sessions" class="stat-val">0</strong>
+                        </div>
+                        <div class="stat-tile">
+                            <span class="stat-label">STREAK</span>
+                            <strong id="today-streak" class="stat-val">0d</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-header-row">
+                        <h2 class="card-title" style="margin-bottom: 0;">RECENT HISTORY</h2>
+                        <a href="history.html" class="text-link">View All →</a>
+                    </div>
+                    <div id="recent-mini-log" class="mini-log-list"></div>
+                </section>
+
+                <section class="card">
+                    <h2 class="card-title">UTILITIES</h2>
+                    <div class="quick-actions">
+                        <button type="button" id="btn-quick-notify" class="btn-outline">Enable Desktop Alerts</button>
+                        <button type="button" id="btn-guide-card" class="btn-outline">Open Quick Guide</button>
+                    </div>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
