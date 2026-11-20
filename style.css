@@ -1,3 +1,9 @@
+@property --ghibli-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
 /* =========================================
    10 LUMINOUS SOOTHING THEMES (5 LIGHT + 5 DARK)
    ========================================= */
@@ -452,6 +458,8 @@ body {
     padding: 24px;
     width: 100%;
     max-width: 520px;
+    max-height: 88vh;
+    overflow-y: auto;
     box-shadow: var(--shadow-hover);
 }
 
@@ -501,8 +509,31 @@ body {
 .time-text { font-size: clamp(2.3rem, 7vw, 3.2rem); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 2px; }
 .status-text { font-size: 0.72rem; font-weight: 800; letter-spacing: 1.4px; color: var(--accent-2); margin-top: 4px; }
 
+/* Session Label Picker & Add Session Button */
 .label-picker { text-align: left; margin-bottom: 12px; }
+.label-picker-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
 .field-caption { display: block; font-size: 0.72rem; font-weight: 800; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+.add-session-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    border: 1px dashed var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.74rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
 .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
 .label-pill {
     padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2);
@@ -510,6 +541,67 @@ body {
     transition: transform 0.22s ease, background-color 0.22s ease, color 0.22s ease;
 }
 .label-pill.active { background: var(--accent-2); color: #ffffff; border-color: var(--accent-2); }
+
+/* Manage Session Labels Modal */
+.add-label-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.add-label-submit {
+    padding: 0 18px;
+    height: 46px;
+}
+.label-manager-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+.label-manager-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 10px;
+}
+.label-manager-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.label-edit-input {
+    height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 0.85rem !important;
+    flex: 1;
+}
+.label-manager-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.btn-mini {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
 
 .task-box { margin-bottom: 18px; }
 
@@ -560,26 +652,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .quick-actions { display: flex; flex-direction: column; gap: 10px; }
 
 /* Email & Password Auth Form */
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-width: 440px;
-}
-.auth-btn-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
+.auth-form { display: flex; flex-direction: column; gap: 12px; max-width: 440px; }
+.auth-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* 10-Theme Picker Grid (Settings Page) */
-.theme-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-}
+.theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 @media (min-width: 600px) { .theme-grid { grid-template-columns: repeat(5, 1fr); } }
-
 .theme-card {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     padding: 12px 8px; border-radius: 12px; border: 1px solid var(--border);
@@ -620,6 +698,481 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .bar-track { width: 100%; height: 10px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); border-radius: 6px; }
 
+/* =========================================
+   DATE-WISE ANALYSIS (CALENDAR + ROLLER + GHIBLI BAR)
+   ========================================= */
+.dwa-card {
+    position: relative;
+    overflow: visible;
+}
+
+.dwa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.dwa-date-badge {
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    padding: 5px 11px;
+    border-radius: 20px;
+}
+
+.dwa-stage {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: center;
+}
+
+@media (min-width: 640px) {
+    .dwa-stage {
+        grid-template-columns: 230px 56px 1fr;
+        gap: 0;
+        align-items: stretch;
+    }
+}
+
+.dwa-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 22px;
+    position: relative;
+    z-index: 30;
+}
+
+/* Calendar Trigger & Custom Hoverable Popover */
+.dwa-cal-wrap {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.dwa-cal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 15px;
+    border-radius: 13px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
+}
+
+.dwa-cal-btn.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    color: var(--accent);
+}
+
+.dwa-cal-icon {
+    width: 21px;
+    height: 21px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.dwa-cal-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 268px;
+    max-width: calc(100vw - 44px);
+    background: var(--surface);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.32);
+    z-index: 250;
+    animation: popoverDrop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dwa-cal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.dwa-cal-month {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.dwa-cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.dwa-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.cal-day-cell {
+    position: relative;
+    height: 32px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+}
+
+.cal-day-cell.has-log::after {
+    content: "";
+    position: absolute;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.cal-day-cell.selected {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px var(--accent-soft);
+}
+
+.cal-day-cell.selected.has-log::after {
+    background: var(--accent-text);
+}
+
+.cal-day-cell.future {
+    opacity: 0.28;
+    cursor: not-allowed;
+}
+
+.cal-day-cell.empty {
+    pointer-events: none;
+}
+
+/* This Week Only Day Roller */
+.dwa-roller-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: auto 0;
+}
+
+.dwa-week-tag {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+.dwa-roller-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dwa-date-fixed {
+    font-size: 0.94rem;
+    font-weight: 800;
+    color: var(--text);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.dwa-roller-shell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    max-width: 155px;
+}
+
+.dwa-roller-arrow {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 0.68rem;
+    padding: 3px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.dwa-roller-arrow:disabled {
+    opacity: 0.22;
+    cursor: not-allowed;
+}
+
+.dwa-roller-viewport {
+    width: 100%;
+    height: 54px;
+    border-radius: 13px;
+    border: 1.5px solid var(--accent);
+    background: var(--surface-2);
+    box-shadow: 0 6px 18px var(--accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.dwa-roller-viewport:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+.dwa-roller-value {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+}
+
+.roller-day-name {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.roller-day-sub {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.dwa-roller-hint {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.roll-anim-up {
+    animation: rollSlideUp 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.roll-anim-down {
+    animation: rollSlideDown 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rollSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rollSlideDown {
+    from { opacity: 0; transform: translateY(-18px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Connector Lines */
+.dwa-connector {
+    display: none;
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    color: var(--accent);
+    opacity: 0.55;
+}
+
+@media (min-width: 640px) {
+    .dwa-connector {
+        display: block;
+    }
+}
+
+/* Ghibli Stacked Bar + Continuous Glowing Border */
+.dwa-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.ghibli-bar-frame {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    height: 280px;
+    padding: 3.5px;
+    border-radius: 18px;
+    background: conic-gradient(
+        from var(--ghibli-angle),
+        transparent 10%,
+        var(--accent) 32%,
+        var(--accent-2) 52%,
+        rgba(255, 255, 255, 0.92) 62%,
+        var(--accent) 74%,
+        transparent 92%
+    );
+    animation: ghibliBorderSpin 4.2s linear infinite;
+    box-shadow: 0 0 24px var(--accent-soft), 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.ghibli-bar-frame::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 20px;
+    background: inherit;
+    filter: blur(10px);
+    opacity: 0.5;
+    z-index: -1;
+}
+
+@keyframes ghibliBorderSpin {
+    from { --ghibli-angle: 0deg; }
+    to { --ghibli-angle: 360deg; }
+}
+
+.ghibli-bar-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 15px;
+    background: var(--surface-2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 5px;
+    gap: 4px;
+    position: relative;
+}
+
+.ghibli-segment {
+    position: relative;
+    width: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 10px;
+    overflow: hidden;
+    border: 1.5px solid rgba(255, 255, 255, 0.38);
+    box-shadow: inset 0 1px 8px rgba(255, 255, 255, 0.35), 0 3px 10px rgba(0, 0, 0, 0.12);
+    transform-origin: bottom center;
+    animation: ghibliRise 0.65s cubic-bezier(0.22, 1.15, 0.36, 1) both, ghibliBreathe 5.5s ease-in-out infinite alternate;
+}
+
+/* Soft Painterly Ghibli Brush-Stroke Sheen */
+.ghibli-segment::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            -32deg,
+            rgba(255, 255, 255, 0.13) 0px,
+            rgba(255, 255, 255, 0.13) 6px,
+            transparent 6px,
+            transparent 14px
+        ),
+        radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.28) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.ghibli-seg-text {
+    position: relative;
+    z-index: 1;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #16221e;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ghibli-empty {
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+@keyframes ghibliRise {
+    0% { opacity: 0; transform: scaleY(0.18) translateY(10px); filter: saturate(0.7); }
+    100% { opacity: 1; transform: scaleY(1) translateY(0); filter: saturate(1); }
+}
+
+@keyframes ghibliBreathe {
+    0% { filter: brightness(0.98) saturate(0.98); }
+    100% { filter: brightness(1.05) saturate(1.08); }
+}
+
+.dwa-ground-line {
+    width: 100%;
+    max-width: 370px;
+    height: 3px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, transparent, var(--border), var(--accent), var(--border), transparent);
+    margin-top: 8px;
+}
+
+.dwa-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.dwa-legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.dwa-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 .card-header-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
 .history-filters { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
 @media (min-width: 600px) { .history-filters { grid-template-columns: 2fr 1fr; } }
@@ -651,9 +1204,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    ========================================= */
 @media (hover: hover) {
     .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); border-color: var(--accent); }
+    .dwa-card:hover { transform: none; }
     .nav-link:hover:not(.active) { color: var(--text); background: var(--surface-2); transform: translateY(-2px); }
     .icon-btn:hover, .icon-btn-sm:hover { transform: translateY(-2px) scale(1.06); border-color: var(--accent); box-shadow: 0 6px 14px var(--accent-soft); }
     .theme-circle-btn:hover { background: var(--surface-2); transform: translateY(-2px); }
+    .add-session-btn:hover { background: var(--accent); color: var(--accent-text); transform: translateY(-1px); }
+    .btn-mini:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+    .dwa-cal-btn:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 8px 20px var(--accent-soft); background: var(--surface); }
+    .cal-day-cell:not(.future):not(.empty):not(.selected):hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); transform: scale(1.08); box-shadow: 0 4px 10px var(--accent-soft); }
+    .dwa-roller-arrow:not(:disabled):hover { color: var(--accent); background: var(--accent-soft); }
+    .dwa-roller-viewport:hover { box-shadow: 0 8px 24px var(--accent-soft); }
     .mode-btn:hover:not(.active), .label-pill:hover:not(.active), .rate-btn:hover:not(.active),
     .theme-card:hover, .btn-secondary:hover, .btn-outline:hover { transform: translateY(-2px); border-color: var(--accent); color: var(--text); }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px var(--accent-soft); }
@@ -661,8 +1221,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     .btn-danger-sm:hover { background: var(--danger); color: #ffffff; transform: translateY(-1px); }
 }
 
-.btn-primary:active, .btn-secondary:active, .btn-outline:active,
+.btn-primary:active, .btn-secondary:active, .btn-outline:active, .add-session-btn:active, .btn-mini:active,
+.dwa-cal-btn:active, .cal-day-cell:not(.future):not(.empty):active,
 .mode-btn:active, .label-pill:active, .rate-btn:active, .theme-card:active, .theme-circle-btn:active,
 .icon-btn:active, .icon-btn-sm:active, .nav-link:active, .btn-danger-sm:active {
     transform: translateY(1px) scale(0.97);
-           }
+}
