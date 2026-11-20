@@ -65,6 +65,39 @@ const MOTIVATIONAL_QUOTES = [
     { text: "Rest when you need to, then return with quiet clarity.", author: "FocusFlow" }
 ];
 
+const GUIDE_STEPS = [
+    {
+        icon: "💧",
+        title: "Deep Focus, Visualized",
+        body: "FocusFlow turns every study or work block into a calm visual rhythm. Watch the crystalline water rise as you focus, drain gently during breaks, and pair your session with soothing rain, fireplace, river, or wind ambience.",
+        tip: "Tip: Once a timer starts, mode switching locks automatically so you stay committed—use Pause or Reset anytime."
+    },
+    {
+        icon: "🗂️",
+        title: "Searchable Time History",
+        body: "Every completed focus session is logged automatically with its color-coded label, task note, date, and completion time. Filter by label or search keywords anytime in the History tab.",
+        tip: "Tip: Your logs stay 100% private to your device—or your personal account when signed in."
+    },
+    {
+        icon: "🎨",
+        title: "10 Soothing Ambient Themes",
+        body: "Tap the palette icon in the top-right bar on any page to switch instantly between 5 airy light themes and 5 restful dark themes—complete with soft ambient lighting and custom label colors.",
+        tip: "Tip: Tap '+ Add Session' on the Timer to create custom labels with any color you like."
+    },
+    {
+        icon: "📊",
+        title: "Smart Date-Wise Analytics",
+        body: "Track your streak, 7-day focus chart, and label breakdown. In Date-Wise Analysis, click any date on the inline calendar to inspect its Day Summary, daily goal progress, chronological timeline, and glowing stacked bar.",
+        tip: "Tip: Tap the pencil icon on your daily goal bar to customize your daily minute target."
+    },
+    {
+        icon: "⚙️",
+        title: "Settings & Cloud Sync",
+        body: "Fine-tune your Focus minutes, Short Break (5–12m), Long Break (15–50m), and pick from 6 studio Web Audio chimes. Sign up with your Name, Email, and Password to sync logs, labels, colors, and themes across devices.",
+        tip: "Tip: Tap the 'Timer Settings' button right below the Focus/Break bar anytime for quick adjustments."
+    }
+];
+
 function loadJSON(key, fallback) {
     try {
         const raw = localStorage.getItem(key);
@@ -375,7 +408,7 @@ document.querySelectorAll(".theme-card").forEach((card) => {
 });
 
 // ==========================================
-// USER PREFERENCES CLOUD SYNC (LABELS, COLORS, SETTINGS, THEME, NAME)
+// USER PREFERENCES CLOUD SYNC
 // ==========================================
 async function savePreferencesToCloud() {
     if (!db || !currentUser) return;
@@ -395,9 +428,7 @@ async function savePreferencesToCloud() {
             .from("user_preferences")
             .upsert(payload, { onConflict: "user_id" });
 
-        if (error) {
-            console.error("Supabase preferences save error:", error.message);
-        }
+        if (error) console.error("Supabase preferences save error:", error.message);
     } catch (e) {
         console.error("Network error saving preferences:", e);
     }
@@ -442,9 +473,7 @@ async function syncPreferencesFromCloud(overrideName) {
         }
         try { localStorage.setItem("ff_user_name", userProfileName); } catch (e) {}
 
-        if (data.theme && allThemeIds.includes(data.theme)) {
-            applyTheme(data.theme, true);
-        }
+        if (data.theme && allThemeIds.includes(data.theme)) applyTheme(data.theme, true);
 
         if (data.daily_goal) {
             dailyGoalMins = clamp(parseInt(data.daily_goal, 10) || 60, 5, 1440);
@@ -467,12 +496,8 @@ async function syncPreferencesFromCloud(overrideName) {
         }
 
         updateAuthUI();
-        if (typeof onPreferencesSynced === "function") {
-            onPreferencesSynced();
-        }
-        if (needsSaveBack) {
-            await savePreferencesToCloud();
-        }
+        if (typeof onPreferencesSynced === "function") onPreferencesSynced();
+        if (needsSaveBack) await savePreferencesToCloud();
     } catch (e) {
         console.error("Network error fetching preferences:", e);
     }
@@ -492,9 +517,7 @@ async function initAuth() {
         }
         updateAuthUI();
 
-        if (currentUser) {
-            await syncPreferencesFromCloud();
-        }
+        if (currentUser) await syncPreferencesFromCloud();
 
         db.auth.onAuthStateChange((_event, session) => {
             currentUser = session ? session.user : null;
@@ -614,9 +637,7 @@ if (authForm) {
             const { data, error } = await db.auth.signUp({
                 email,
                 password,
-                options: {
-                    data: { full_name: fullName }
-                }
+                options: { data: { full_name: fullName } }
             });
             if (error) {
                 setAuthMessage(error.message);
@@ -804,26 +825,87 @@ if (feedbackModal) {
 bindFeedbackForm("settings-feedback-form", "settings-fb-text", "settings-fb-status", "settings");
 
 // ==========================================
-// QUICK GUIDE MODAL (OPENS ON FIRST VISIT)
+// 5-STEP INTERACTIVE WALKTHROUGH MODAL
 // ==========================================
 const guideModal = document.getElementById("guide-modal");
 if (guideModal) {
     const openGuideBtn = document.getElementById("btn-open-guide");
     const openGuideCardBtn = document.getElementById("btn-guide-card");
-    const closeGuideBtn = document.getElementById("btn-close-guide");
     const closeGuideX = document.getElementById("btn-close-guide-x");
+    const prevBtn = document.getElementById("btn-guide-prev");
+    const nextBtn = document.getElementById("btn-guide-next");
+    const skipBtn = document.getElementById("btn-guide-skip");
 
-    function openGuide() { guideModal.classList.remove("hidden"); }
-    function closeGuide() {
-        guideModal.classList.add("hidden");
-        localStorage.setItem("ff_guide_seen", "true");
+    const stepBadgeEl = document.getElementById("guide-step-badge");
+    const stepIconEl = document.getElementById("guide-step-icon");
+    const stepTitleEl = document.getElementById("guide-step-title");
+    const stepBodyEl = document.getElementById("guide-step-body");
+    const stepTipEl = document.getElementById("guide-step-tip");
+    const dotsEl = document.getElementById("guide-dots");
+    const stageEl = guideModal.querySelector(".guide-stage");
+
+    let guideIndex = 0;
+
+    function renderGuideStep() {
+        const step = GUIDE_STEPS[guideIndex];
+        stepBadgeEl.textContent = `STEP ${guideIndex + 1} OF ${GUIDE_STEPS.length}`;
+        stepIconEl.textContent = step.icon;
+        stepTitleEl.textContent = step.title;
+        stepBodyEl.textContent = step.body;
+        stepTipEl.textContent = step.tip;
+
+        if (stageEl) {
+            stageEl.style.animation = "none";
+            void stageEl.offsetWidth;
+            stageEl.style.animation = "guideFadeIn 0.24s ease";
+        }
+
+        dotsEl.innerHTML = GUIDE_STEPS.map((_, idx) =>
+            `<span class="guide-dot ${idx === guideIndex ? "active" : ""}"></span>`
+        ).join("");
+
+        prevBtn.disabled = guideIndex === 0;
+        prevBtn.style.visibility = guideIndex === 0 ? "hidden" : "visible";
+        nextBtn.textContent = guideIndex === GUIDE_STEPS.length - 1 ? "GET STARTED" : "NEXT →";
     }
 
-    if (!localStorage.getItem("ff_guide_seen")) openGuide();
+    function openGuide() {
+        guideIndex = 0;
+        renderGuideStep();
+        guideModal.classList.remove("hidden");
+    }
+
+    function closeGuide() {
+        guideModal.classList.add("hidden");
+        localStorage.setItem("ff_guide_v2_seen", "true");
+    }
+
+    if (!localStorage.getItem("ff_guide_v2_seen")) openGuide();
     if (openGuideBtn) openGuideBtn.addEventListener("click", openGuide);
     if (openGuideCardBtn) openGuideCardBtn.addEventListener("click", openGuide);
-    if (closeGuideBtn) closeGuideBtn.addEventListener("click", closeGuide);
     if (closeGuideX) closeGuideX.addEventListener("click", closeGuide);
+    if (skipBtn) skipBtn.addEventListener("click", closeGuide);
+
+    if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+            if (guideIndex > 0) {
+                guideIndex--;
+                renderGuideStep();
+            }
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+            if (guideIndex < GUIDE_STEPS.length - 1) {
+                guideIndex++;
+                renderGuideStep();
+            } else {
+                closeGuide();
+            }
+        });
+    }
+
     guideModal.addEventListener("click", (e) => { if (e.target === guideModal) closeGuide(); });
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && !guideModal.classList.contains("hidden")) closeGuide();
@@ -831,7 +913,7 @@ if (guideModal) {
 }
 
 // ==========================================
-// WEB AUDIO API (6 CALMING COMPLETION SOUNDS)
+// WEB AUDIO API: COMPLETION CHIMES + AMBIENT SOUNDSCAPES
 // ==========================================
 let sharedAudioCtx = null;
 
@@ -899,6 +981,312 @@ function playChime(previewType) {
     } catch (e) {}
 }
 
+// Procedural Focus Ambient Sound Engine (Rain, Fireplace, River, Wind)
+const AmbientSoundEngine = (function () {
+    let activeType = "off";
+    let masterGain = null;
+    let activeNodes = [];
+    let timers = [];
+    let previewTimeout = null;
+    let cachedPink = null;
+    let cachedBrown = null;
+
+    function getPinkBuffer(ctx) {
+        if (cachedPink && cachedPink.sampleRate === ctx.sampleRate) return cachedPink;
+        const len = ctx.sampleRate * 4;
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (let i = 0; i < len; i++) {
+            const white = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            b3 = 0.86650 * b3 + white * 0.3104856;
+            b4 = 0.55000 * b4 + white * 0.5329522;
+            b5 = -0.7616 * b5 - white * 0.0168980;
+            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.06;
+            b6 = white * 0.115926;
+        }
+        cachedPink = buf;
+        return buf;
+    }
+
+    function getBrownBuffer(ctx) {
+        if (cachedBrown && cachedBrown.sampleRate === ctx.sampleRate) return cachedBrown;
+        const len = ctx.sampleRate * 4;
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < len; i++) {
+            const white = Math.random() * 2 - 1;
+            data[i] = (last + 0.02 * white) / 1.02;
+            last = data[i];
+            data[i] *= 2.4;
+        }
+        cachedBrown = buf;
+        return buf;
+    }
+
+    function makeLoopSource(ctx, buffer) {
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.loop = true;
+        return src;
+    }
+
+    function clearTimers() {
+        timers.forEach((id) => clearTimeout(id));
+        timers = [];
+        if (previewTimeout) {
+            clearTimeout(previewTimeout);
+            previewTimeout = null;
+        }
+    }
+
+    function stop(immediate) {
+        clearTimers();
+        const nodesToStop = activeNodes.slice();
+        const oldMaster = masterGain;
+        activeNodes = [];
+        masterGain = null;
+        activeType = "off";
+
+        if (!oldMaster) return;
+        try {
+            const ctx = getAudioContext();
+            const now = ctx ? ctx.currentTime : 0;
+            const fade = immediate ? 0.05 : 0.35;
+            oldMaster.gain.cancelScheduledValues(now);
+            oldMaster.gain.setValueAtTime(Math.max(0.0001, oldMaster.gain.value), now);
+            oldMaster.gain.linearRampToValueAtTime(0.0001, now + fade);
+
+            setTimeout(() => {
+                nodesToStop.forEach((n) => {
+                    try { if (n.stop) n.stop(); } catch (e) {}
+                    try { if (n.disconnect) n.disconnect(); } catch (e) {}
+                });
+                try { oldMaster.disconnect(); } catch (e) {}
+            }, Math.round(fade * 1000) + 60);
+        } catch (e) {}
+    }
+
+    function setVolume(vol01) {
+        if (!masterGain) return;
+        try {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+            masterGain.gain.cancelScheduledValues(now);
+            masterGain.gain.linearRampToValueAtTime(clamp(vol01, 0, 1) * 0.55, now + 0.15);
+        } catch (e) {}
+    }
+
+    function start(type, vol01, isPreview) {
+        if (!type || type === "off") {
+            stop(false);
+            return;
+        }
+        if (activeType === type && !isPreview && !previewTimeout) {
+            setVolume(vol01);
+            return;
+        }
+
+        stop(true);
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        activeType = type;
+        masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        masterGain.gain.linearRampToValueAtTime(clamp(vol01, 0, 1) * 0.55, ctx.currentTime + 0.55);
+        masterGain.connect(ctx.destination);
+
+        if (type === "rain") {
+            // Steady rain pouring sheet
+            const rainSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
+            const bp = ctx.createBiquadFilter();
+            bp.type = "bandpass";
+            bp.frequency.value = 1250;
+            bp.Q.value = 0.55;
+
+            const lp = ctx.createBiquadFilter();
+            lp.type = "lowpass";
+            lp.frequency.value = 3200;
+
+            const rainGain = ctx.createGain();
+            rainGain.gain.value = 0.95;
+
+            rainSrc.connect(bp);
+            bp.connect(lp);
+            lp.connect(rainGain);
+            rainGain.connect(masterGain);
+            rainSrc.start();
+            activeNodes.push(rainSrc, bp, lp, rainGain);
+
+            // Soft distant rain rumble
+            const lowSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
+            const lowFilter = ctx.createBiquadFilter();
+            lowFilter.type = "lowpass";
+            lowFilter.frequency.value = 280;
+            const lowGain = ctx.createGain();
+            lowGain.gain.value = 0.25;
+            lowSrc.connect(lowFilter);
+            lowFilter.connect(lowGain);
+            lowGain.connect(masterGain);
+            lowSrc.start();
+            activeNodes.push(lowSrc, lowFilter, lowGain);
+        } else if (type === "fire") {
+            // Warm winter furnace / hearth rumble
+            const hearthSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
+            const lp = ctx.createBiquadFilter();
+            lp.type = "lowpass";
+            lp.frequency.value = 170;
+            const hearthGain = ctx.createGain();
+            hearthGain.gain.value = 0.85;
+
+            hearthSrc.connect(lp);
+            lp.connect(hearthGain);
+            hearthGain.connect(masterGain);
+            hearthSrc.start();
+            activeNodes.push(hearthSrc, lp, hearthGain);
+
+            // Soft flame hiss
+            const hissSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
+            const hissBp = ctx.createBiquadFilter();
+            hissBp.type = "bandpass";
+            hissBp.frequency.value = 720;
+            hissBp.Q.value = 1.2;
+            const hissGain = ctx.createGain();
+            hissGain.gain.value = 0.22;
+            hissSrc.connect(hissBp);
+            hissBp.connect(hissGain);
+            hissGain.connect(masterGain);
+            hissSrc.start();
+            activeNodes.push(hissSrc, hissBp, hissGain);
+
+            // Randomized wood crackles & pops
+            function scheduleCrackle() {
+                if (activeType !== "fire" || !masterGain) return;
+                try {
+                    const now = ctx.currentTime;
+                    const burstLen = Math.floor(ctx.sampleRate * (0.012 + Math.random() * 0.022));
+                    const burstBuf = ctx.createBuffer(1, burstLen, ctx.sampleRate);
+                    const ch = burstBuf.getChannelData(0);
+                    for (let i = 0; i < burstLen; i++) {
+                        ch[i] = (Math.random() * 2 - 1) * Math.exp(-i / (burstLen * 0.28));
+                    }
+                    const src = ctx.createBufferSource();
+                    src.buffer = burstBuf;
+                    const hp = ctx.createBiquadFilter();
+                    hp.type = "bandpass";
+                    hp.frequency.value = 1900 + Math.random() * 2400;
+                    hp.Q.value = 1.8;
+                    const g = ctx.createGain();
+                    g.gain.value = 0.16 + Math.random() * 0.32;
+                    src.connect(hp);
+                    hp.connect(g);
+                    g.connect(masterGain);
+                    src.start(now);
+                } catch (e) {}
+                timers.push(setTimeout(scheduleCrackle, 140 + Math.random() * 620));
+            }
+            scheduleCrackle();
+        } else if (type === "river") {
+            // Flowing river with gentle LFO current modulation
+            const riverSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
+            const bp = ctx.createBiquadFilter();
+            bp.type = "bandpass";
+            bp.frequency.value = 540;
+            bp.Q.value = 0.85;
+
+            const lfo = ctx.createOscillator();
+            lfo.type = "sine";
+            lfo.frequency.value = 0.16;
+            const lfoGain = ctx.createGain();
+            lfoGain.gain.value = 190;
+            lfo.connect(lfoGain);
+            lfoGain.connect(bp.frequency);
+
+            const riverGain = ctx.createGain();
+            riverGain.gain.value = 0.9;
+
+            riverSrc.connect(bp);
+            bp.connect(riverGain);
+            riverGain.connect(masterGain);
+            riverSrc.start();
+            lfo.start();
+            activeNodes.push(riverSrc, bp, lfo, lfoGain, riverGain);
+
+            // Soft brook babble layer
+            const brookSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
+            const brookLp = ctx.createBiquadFilter();
+            brookLp.type = "lowpass";
+            brookLp.frequency.value = 340;
+            const brookGain = ctx.createGain();
+            brookGain.gain.value = 0.45;
+            brookSrc.connect(brookLp);
+            brookLp.connect(brookGain);
+            brookGain.connect(masterGain);
+            brookSrc.start();
+            activeNodes.push(brookSrc, brookLp, brookGain);
+        } else if (type === "wind") {
+            // Layered gusting wind storm
+            const wind1 = makeLoopSource(ctx, getPinkBuffer(ctx));
+            const bp1 = ctx.createBiquadFilter();
+            bp1.type = "bandpass";
+            bp1.frequency.value = 360;
+            bp1.Q.value = 2.4;
+
+            const lfo1 = ctx.createOscillator();
+            lfo1.frequency.value = 0.09;
+            const lfo1G = ctx.createGain();
+            lfo1G.gain.value = 160;
+            lfo1.connect(lfo1G);
+            lfo1G.connect(bp1.frequency);
+
+            const g1 = ctx.createGain();
+            g1.gain.value = 0.85;
+            wind1.connect(bp1);
+            bp1.connect(g1);
+            g1.connect(masterGain);
+            wind1.start();
+            lfo1.start();
+            activeNodes.push(wind1, bp1, lfo1, lfo1G, g1);
+
+            const wind2 = makeLoopSource(ctx, getPinkBuffer(ctx));
+            const bp2 = ctx.createBiquadFilter();
+            bp2.type = "bandpass";
+            bp2.frequency.value = 740;
+            bp2.Q.value = 3.2;
+
+            const lfo2 = ctx.createOscillator();
+            lfo2.frequency.value = 0.13;
+            const lfo2G = ctx.createGain();
+            lfo2G.gain.value = 220;
+            lfo2.connect(lfo2G);
+            lfo2G.connect(bp2.frequency);
+
+            const g2 = ctx.createGain();
+            g2.gain.value = 0.38;
+            wind2.connect(bp2);
+            bp2.connect(g2);
+            g2.connect(masterGain);
+            wind2.start();
+            lfo2.start();
+            activeNodes.push(wind2, bp2, lfo2, lfo2G, g2);
+        }
+
+        if (isPreview) {
+            previewTimeout = setTimeout(() => {
+                previewTimeout = null;
+                stop(false);
+            }, 2600);
+        }
+    }
+
+    return { start, stop, setVolume };
+})();
+
 // ==========================================
 // DESKTOP NOTIFICATIONS & STREAKS
 // ==========================================
@@ -944,7 +1332,11 @@ function getTodayStats() {
 const timerDisplay = document.getElementById("timer-display");
 
 if (timerDisplay) {
+    const timerCardEl = document.getElementById("timer-card");
+    const modeSwitcherEl = document.getElementById("mode-switcher-unified");
+    const modeLockNoteEl = document.getElementById("mode-lock-note");
     const ringEl = document.getElementById("ring-progress");
+    const waterLevelEl = document.getElementById("water-level");
     const statusEl = document.getElementById("timer-status");
     const startPauseBtn = document.getElementById("btn-start-pause");
     const resetBtn = document.getElementById("btn-reset");
@@ -959,8 +1351,15 @@ if (timerDisplay) {
     const quoteAuthorEl = document.getElementById("quote-author");
     const dismissQuoteBtn = document.getElementById("btn-dismiss-quote");
 
+    const ambientPills = document.querySelectorAll(".ambient-pill");
+    const ambientVolSlider = document.getElementById("ambient-volume");
+
     const CIRCUMFERENCE = 2 * Math.PI * 118;
     let tickInterval = null;
+
+    let selectedAmbient = localStorage.getItem("ff_ambient_sound") || "off";
+    let ambientVol = clamp(parseInt(localStorage.getItem("ff_ambient_vol"), 10) || 45, 0, 100);
+    if (ambientVolSlider) ambientVolSlider.value = ambientVol;
 
     function getModeSeconds(mode) {
         if (mode === "short") return settings.short * 60;
@@ -972,16 +1371,59 @@ if (timerDisplay) {
         mode: "focus",
         preferredBreak: "short",
         isRunning: false,
+        isLocked: false,
         endTime: null,
         remainingSeconds: getModeSeconds("focus"),
         label: sessionLabels[0] || "Study",
         task: ""
     });
+    if (typeof timerState.isLocked !== "boolean") {
+        timerState.isLocked = timerState.isRunning || timerState.remainingSeconds < getModeSeconds(timerState.mode);
+    }
     if (timerState.preferredBreak !== "short" && timerState.preferredBreak !== "long") {
         timerState.preferredBreak = timerState.mode === "long" ? "long" : "short";
     }
     if (!sessionLabels.includes(timerState.label)) {
         timerState.label = sessionLabels[0] || "Study";
+    }
+
+    function syncAmbientPlayback() {
+        if (timerState.isRunning && timerState.mode === "focus" && selectedAmbient !== "off") {
+            AmbientSoundEngine.start(selectedAmbient, ambientVol / 100, false);
+        } else {
+            AmbientSoundEngine.stop(false);
+        }
+    }
+
+    function renderAmbientUI() {
+        ambientPills.forEach((btn) => {
+            btn.classList.toggle("active", btn.getAttribute("data-ambient") === selectedAmbient);
+        });
+    }
+
+    ambientPills.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            selectedAmbient = btn.getAttribute("data-ambient") || "off";
+            try { localStorage.setItem("ff_ambient_sound", selectedAmbient); } catch (e) {}
+            renderAmbientUI();
+
+            if (selectedAmbient === "off") {
+                AmbientSoundEngine.stop(false);
+            } else if (timerState.isRunning && timerState.mode === "focus") {
+                AmbientSoundEngine.start(selectedAmbient, ambientVol / 100, false);
+            } else {
+                // Play a brief 2.5s preview when idle so the user can audition the sound
+                AmbientSoundEngine.start(selectedAmbient, ambientVol / 100, true);
+            }
+        });
+    });
+
+    if (ambientVolSlider) {
+        ambientVolSlider.addEventListener("input", () => {
+            ambientVol = clamp(parseInt(ambientVolSlider.value, 10) || 0, 0, 100);
+            try { localStorage.setItem("ff_ambient_vol", String(ambientVol)); } catch (e) {}
+            AmbientSoundEngine.setVolume(ambientVol / 100);
+        });
     }
 
     function renderLabelPills() {
@@ -1114,9 +1556,7 @@ if (timerDisplay) {
                     renderLabelPills();
                     updateTodayWidgets();
                 });
-                colorInp.addEventListener("change", () => {
-                    savePreferencesToCloud();
-                });
+                colorInp.addEventListener("change", () => savePreferencesToCloud());
 
                 const actions = document.createElement("div");
                 actions.className = "label-manager-actions";
@@ -1272,23 +1712,42 @@ if (timerDisplay) {
 
         timerDisplay.textContent = formatted;
         document.title = `${formatted} - FocusFlow`;
-        ringEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - (totalSecs > 0 ? rem / totalSecs : 0));
 
+        const ratioRemaining = totalSecs > 0 ? clamp(rem / totalSecs, 0, 1) : 0;
+        const ratioElapsed = 1 - ratioRemaining;
+        ringEl.style.strokeDashoffset = CIRCUMFERENCE * ratioElapsed;
+
+        // Crystalline Water Level: Focus rises (0% -> 100%), Breaks drain (100% -> 0%)
         const isFocus = timerState.mode === "focus";
-        if (focusModeBtn) focusModeBtn.classList.toggle("active", isFocus);
+        if (waterLevelEl) {
+            const waterPct = isFocus ? ratioElapsed * 100 : ratioRemaining * 100;
+            waterLevelEl.style.height = `${waterPct.toFixed(2)}%`;
+            waterLevelEl.classList.toggle("empty-water", waterPct <= 0.4);
+        }
+
+        // Strict Mode Lock while a session is started (until Reset or Finish)
+        const locked = Boolean(timerState.isLocked);
+        if (modeSwitcherEl) modeSwitcherEl.classList.toggle("mode-locked", locked);
+        if (modeLockNoteEl) modeLockNoteEl.classList.toggle("hidden", !locked);
+        if (focusModeBtn) {
+            focusModeBtn.classList.toggle("active", isFocus);
+            focusModeBtn.disabled = locked;
+        }
         if (breakGlideSwitch) {
             breakGlideSwitch.classList.toggle("break-active", !isFocus);
             breakGlideSwitch.setAttribute("data-active-break", timerState.preferredBreak);
         }
         breakGlideOpts.forEach((opt) => {
             opt.classList.toggle("active-choice", opt.getAttribute("data-break") === timerState.preferredBreak);
+            opt.disabled = locked;
         });
 
         startPauseBtn.textContent = timerState.isRunning ? "PAUSE" : "START";
         statusEl.textContent = timerState.isRunning
             ? (isFocus ? `FOCUSING • ${timerState.label.toUpperCase()}` : (timerState.mode === "long" ? "LONG BREAK..." : "SHORT BREAK..."))
-            : "READY";
+            : (locked ? "PAUSED" : "READY");
 
+        if (timerCardEl) timerCardEl.classList.toggle("is-running", timerState.isRunning);
         document.body.classList.toggle("focus-active", timerState.isRunning);
     }
 
@@ -1296,8 +1755,10 @@ if (timerDisplay) {
         clearInterval(tickInterval);
         tickInterval = null;
         timerState.isRunning = false;
+        timerState.isLocked = false;
         timerState.endTime = null;
 
+        AmbientSoundEngine.stop(false);
         playChime();
         showRandomQuote();
 
@@ -1344,9 +1805,11 @@ if (timerDisplay) {
         if (timerState.isRunning) return;
         getAudioContext();
         timerState.isRunning = true;
+        timerState.isLocked = true;
         timerState.endTime = Date.now() + timerState.remainingSeconds * 1000;
         saveJSON("ff_timer_state", timerState);
         renderTimerUI();
+        syncAmbientPlayback();
         tickInterval = setInterval(tick, 250);
     }
 
@@ -1360,10 +1823,13 @@ if (timerDisplay) {
         timerState.endTime = null;
         saveJSON("ff_timer_state", timerState);
         renderTimerUI();
+        syncAmbientPlayback();
     }
 
-    function switchMode(newMode) {
+    function switchMode(newMode, forceUnlock) {
+        if (timerState.isLocked && !forceUnlock) return;
         pauseTimer();
+        timerState.isLocked = false;
         timerState.mode = newMode;
         if (newMode === "short" || newMode === "long") {
             timerState.preferredBreak = newMode;
@@ -1374,18 +1840,19 @@ if (timerDisplay) {
     }
 
     startPauseBtn.addEventListener("click", () => (timerState.isRunning ? pauseTimer() : startTimer()));
-    resetBtn.addEventListener("click", () => switchMode(timerState.mode));
+    resetBtn.addEventListener("click", () => switchMode(timerState.mode, true));
 
     if (focusModeBtn) {
-        focusModeBtn.addEventListener("click", () => switchMode("focus"));
+        focusModeBtn.addEventListener("click", () => switchMode("focus", false));
     }
 
     breakGlideOpts.forEach((opt) => {
         opt.addEventListener("click", () => {
+            if (timerState.isLocked) return;
             const chosenBreak = opt.getAttribute("data-break");
             if (chosenBreak === "short" || chosenBreak === "long") {
                 timerState.preferredBreak = chosenBreak;
-                switchMode(chosenBreak);
+                switchMode(chosenBreak, false);
             }
         });
     });
@@ -1404,9 +1871,14 @@ if (timerDisplay) {
     onPreferencesSynced = () => {
         renderLabelPills();
         updateTodayWidgets();
+        if (!timerState.isLocked) {
+            timerState.remainingSeconds = getModeSeconds(timerState.mode);
+            saveJSON("ff_timer_state", timerState);
+        }
         renderTimerUI();
     };
 
+    renderAmbientUI();
     renderLabelPills();
     updateTodayWidgets();
     renderTimerUI();
@@ -1418,6 +1890,7 @@ if (timerDisplay) {
                 completeSession().then(() => syncLogsFromCloud().then(updateTodayWidgets));
             } else {
                 timerState.remainingSeconds = left;
+                timerState.isLocked = true;
                 renderTimerUI();
                 tickInterval = setInterval(tick, 250);
                 syncLogsFromCloud().then(updateTodayWidgets);
@@ -1985,7 +2458,7 @@ if (settingsForm) {
         await savePreferencesToCloud();
 
         const currentTimer = loadJSON("ff_timer_state", null);
-        if (currentTimer && !currentTimer.isRunning) {
+        if (currentTimer && !currentTimer.isRunning && !currentTimer.isLocked) {
             const secs = currentTimer.mode === "short" ? settings.short * 60 : currentTimer.mode === "long" ? settings.long * 60 : settings.focus * 60;
             currentTimer.remainingSeconds = secs;
             saveJSON("ff_timer_state", currentTimer);
