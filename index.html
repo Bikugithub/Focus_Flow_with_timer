@@ -67,7 +67,7 @@
                 <div class="label-picker">
                     <div class="label-picker-head">
                         <span class="field-caption" style="margin-bottom: 0;">SESSION LABEL</span>
-                        <button type="button" id="btn-manage-labels" class="add-session-btn" title="Add, edit, or delete session labels">
+                        <button type="button" id="btn-manage-labels" class="add-session-btn" title="Add, edit, or recolor session labels">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             <span>Add Session</span>
                         </button>
@@ -126,17 +126,20 @@
         </main>
     </div>
 
-    <!-- Manage Session Labels Modal -->
+    <!-- Manage Session Labels Modal (With Custom Color Picker) -->
     <div id="label-modal" class="modal-backdrop hidden">
         <div class="modal-card">
             <div class="modal-header">
                 <h2>Manage Session Labels</h2>
                 <button type="button" id="btn-close-label-x" class="icon-btn-sm" aria-label="Close">✕</button>
             </div>
-            <p class="muted-text" style="margin-bottom: 14px;">Create, rename, or delete labels for future sessions. Past history logs stay unchanged.</p>
+            <p class="muted-text" style="margin-bottom: 14px;">Create, rename, pick a color, or delete labels for future sessions. Past history logs stay unchanged.</p>
 
             <form id="add-label-form" class="add-label-row">
-                <input type="text" id="new-label-input" placeholder="New label (e.g. Exercise, Revision)" maxlength="24" required>
+                <div class="add-label-input-wrap">
+                    <input type="text" id="new-label-input" placeholder="New label (e.g. Exercise, Revision)" maxlength="24" required>
+                    <input type="color" id="new-label-color" class="label-color-circle" value="#65a7d6" title="Pick label color" aria-label="Pick label color">
+                </div>
                 <button type="submit" class="btn-primary add-label-submit">ADD</button>
             </form>
 
@@ -153,7 +156,7 @@
                 <button type="button" id="btn-close-guide-x" class="icon-btn-sm" aria-label="Close">✕</button>
             </div>
             <ol class="guide-steps">
-                <li><strong>Pick a Mode & Label:</strong> Choose Focus, Short Break, or Long Break, and select or add a session label.</li>
+                <li><strong>Pick a Mode & Label:</strong> Choose Focus, Short Break, or Long Break, and select or create a color-coded session label.</li>
                 <li><strong>Start & Stay Calm:</strong> Your timer stays accurate even if you switch tabs.</li>
                 <li><strong>Track Progress:</strong> Completed sessions sync to History and Date-Wise Analytics automatically.</li>
                 <li><strong>Switch Themes Anytime:</strong> Tap the palette icon in the top bar to pick from 10 soothing themes.</li>
