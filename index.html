@@ -71,7 +71,7 @@
 
                     <!-- Quick Settings Shortcut just below Focus / Break panel -->
                     <div class="timer-quick-bar">
-                        <span id="mode-lock-note" class="mode-lock-note hidden">Reset timer to switch modes</span>
+                        <span id="mode-lock-note" class="mode-lock-note hidden">Reset timer to switch modes or labels</span>
                         <a href="settings.html" class="timer-settings-link" title="Change timer durations in Settings">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <circle cx="12" cy="12" r="3"></circle>
@@ -82,46 +82,9 @@
                     </div>
                 </div>
 
-                <!-- Crystalline Water-Fill Circle + Running Outer Sparkles -->
+                <!-- Celestial Golden-White Ring + Drifting Stardust Centerpiece -->
                 <div class="ring-wrapper" id="ring-wrapper">
-                    <!-- Outer Glittering Sparkles (Active only while timer is running) -->
-                    <div class="ring-sparkles" aria-hidden="true">
-                        <span class="sparkle sp-1">✦</span>
-                        <span class="sparkle sp-2">✧</span>
-                        <span class="sparkle sp-3">✦</span>
-                        <span class="sparkle sp-4">✧</span>
-                        <span class="sparkle sp-5">✦</span>
-                        <span class="sparkle sp-6">✧</span>
-                        <span class="sparkle sp-7">✦</span>
-                        <span class="sparkle sp-8">✧</span>
-                    </div>
-
-                    <!-- Inner Clipped Glass Sphere with Rising/Draining Liquid -->
-                    <div class="water-sphere" aria-hidden="true">
-                        <div class="water-level" id="water-level" style="height: 0%;">
-                            <div class="water-wave wave-back">
-                                <svg viewBox="0 0 240 24" preserveAspectRatio="none"><path d="M0,12 C30,2 60,22 90,12 C120,2 150,22 180,12 C210,2 225,18 240,12 L240,24 L0,24 Z"/></svg>
-                            </div>
-                            <div class="water-wave wave-front">
-                                <svg viewBox="0 0 240 24" preserveAspectRatio="none"><path d="M0,14 C35,24 65,4 100,14 C135,24 165,4 200,14 C220,20 232,12 240,14 L240,24 L0,24 Z"/></svg>
-                            </div>
-                            <div class="water-body">
-                                <span class="crystal-bubble b-1"></span>
-                                <span class="crystal-bubble b-2"></span>
-                                <span class="crystal-bubble b-3"></span>
-                                <span class="crystal-bubble b-4"></span>
-                                <span class="crystal-bubble b-5"></span>
-                                <span class="crystal-bubble b-6"></span>
-                            </div>
-                        </div>
-                        <div class="water-glass-sheen"></div>
-                    </div>
-
-                    <!-- Outer Crisp SVG Progress Ring -->
-                    <svg class="progress-ring" viewBox="0 0 260 260">
-                        <circle class="ring-bg" cx="130" cy="130" r="118"></circle>
-                        <circle class="ring-fg" id="ring-progress" cx="130" cy="130" r="118"></circle>
-                    </svg>
+                    <canvas id="celestial-ring-canvas" class="celestial-canvas" aria-hidden="true"></canvas>
 
                     <div class="ring-center">
                         <div id="timer-display" class="time-text">25:00</div>
@@ -148,7 +111,7 @@
                         </div>
                     </div>
 
-                    <div class="label-picker">
+                    <div class="label-picker" id="label-picker">
                         <div class="label-picker-head">
                             <span class="field-caption" style="margin-bottom: 0;">SESSION LABEL</span>
                             <button type="button" id="btn-manage-labels" class="add-session-btn" title="Add, edit, or recolor session labels">
@@ -242,7 +205,7 @@
             </div>
 
             <div class="guide-stage">
-                <div id="guide-step-icon" class="guide-step-icon" aria-hidden="true">⏱</div>
+                <div id="guide-step-icon" class="guide-step-icon" aria-hidden="true">✨</div>
                 <h2 id="guide-step-title" class="guide-step-title">Welcome to FocusFlow</h2>
                 <p id="guide-step-body" class="guide-step-body"></p>
                 <div id="guide-step-tip" class="guide-step-tip"></div>
