@@ -6,7 +6,7 @@ A lightweight, luminous Pomodoro timer and focus-tracking web application built 
 
 ## Preview
 
-🔗 **Live Demo:** [FocusFlow Web App](https://bikugithub.github.io/Focus_Flow_w/)
+🔗 **Live Demo:** [FocusFlow Web App](https://bikugithub.github.io/Focus_Flow_with_timer/)
 
 
 ---
