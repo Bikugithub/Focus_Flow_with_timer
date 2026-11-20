@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FocusFlow | Timer</title>
-    
     <script>
         (function () {
             try {
@@ -16,7 +15,6 @@
         })();
     </script>
     <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
     <div class="floating-layer" aria-hidden="true">
@@ -41,7 +39,7 @@
                 <button type="button" id="btn-open-feedback" class="icon-btn" title="Send Feedback" aria-label="Send Feedback">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </button>
-                <button type="button" id="btn-open-guide" class="icon-btn" title="Quick Guide" aria-label="Quick Guide">?</button>
+                <button type="button" id="btn-open-guide" class="icon-btn" title="Interactive Guide" aria-label="Interactive Guide">?</button>
                 <button type="button" id="theme-toggle" class="icon-btn" title="Choose Theme" aria-label="Choose Theme">☾</button>
             </div>
         </header>
@@ -57,24 +55,74 @@
         </section>
 
         <main class="timer-layout">
-            <!-- Main Focus Timer Card (Equal Height with Side Stack on Desktop) -->
-            <section class="card timer-card">
-                <div class="mode-switcher-unified">
-                    <button type="button" id="mode-focus-btn" class="mode-btn active" data-mode="focus">Focus</button>
+            <!-- Main Focus Timer Card -->
+            <section class="card timer-card" id="timer-card">
+                <div class="timer-top-block">
+                    <div class="mode-switcher-unified" id="mode-switcher-unified">
+                        <button type="button" id="mode-focus-btn" class="mode-btn active" data-mode="focus">Focus</button>
 
-                    <!-- Gliding Short Break / Long Break Switch -->
-                    <div id="break-glide-switch" class="break-glide-switch" data-active-break="short" role="group" aria-label="Choose Break Type">
-                        <span class="break-glide-thumb" aria-hidden="true"></span>
-                        <button type="button" class="break-glide-opt active-choice" data-break="short">Short Break</button>
-                        <button type="button" class="break-glide-opt" data-break="long">Long Break</button>
+                        <!-- Gliding Short Break / Long Break Switch -->
+                        <div id="break-glide-switch" class="break-glide-switch" data-active-break="short" role="group" aria-label="Choose Break Type">
+                            <span class="break-glide-thumb" aria-hidden="true"></span>
+                            <button type="button" class="break-glide-opt active-choice" data-break="short">Short Break</button>
+                            <button type="button" class="break-glide-opt" data-break="long">Long Break</button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Settings Shortcut just below Focus / Break panel -->
+                    <div class="timer-quick-bar">
+                        <span id="mode-lock-note" class="mode-lock-note hidden">Reset timer to switch modes</span>
+                        <a href="settings.html" class="timer-settings-link" title="Change timer durations in Settings">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            <span>Timer Settings</span>
+                        </a>
                     </div>
                 </div>
 
-                <div class="ring-wrapper">
+                <!-- Crystalline Water-Fill Circle + Running Outer Sparkles -->
+                <div class="ring-wrapper" id="ring-wrapper">
+                    <!-- Outer Glittering Sparkles (Active only while timer is running) -->
+                    <div class="ring-sparkles" aria-hidden="true">
+                        <span class="sparkle sp-1">✦</span>
+                        <span class="sparkle sp-2">✧</span>
+                        <span class="sparkle sp-3">✦</span>
+                        <span class="sparkle sp-4">✧</span>
+                        <span class="sparkle sp-5">✦</span>
+                        <span class="sparkle sp-6">✧</span>
+                        <span class="sparkle sp-7">✦</span>
+                        <span class="sparkle sp-8">✧</span>
+                    </div>
+
+                    <!-- Inner Clipped Glass Sphere with Rising/Draining Liquid -->
+                    <div class="water-sphere" aria-hidden="true">
+                        <div class="water-level" id="water-level" style="height: 0%;">
+                            <div class="water-wave wave-back">
+                                <svg viewBox="0 0 240 24" preserveAspectRatio="none"><path d="M0,12 C30,2 60,22 90,12 C120,2 150,22 180,12 C210,2 225,18 240,12 L240,24 L0,24 Z"/></svg>
+                            </div>
+                            <div class="water-wave wave-front">
+                                <svg viewBox="0 0 240 24" preserveAspectRatio="none"><path d="M0,14 C35,24 65,4 100,14 C135,24 165,4 200,14 C220,20 232,12 240,14 L240,24 L0,24 Z"/></svg>
+                            </div>
+                            <div class="water-body">
+                                <span class="crystal-bubble b-1"></span>
+                                <span class="crystal-bubble b-2"></span>
+                                <span class="crystal-bubble b-3"></span>
+                                <span class="crystal-bubble b-4"></span>
+                                <span class="crystal-bubble b-5"></span>
+                                <span class="crystal-bubble b-6"></span>
+                            </div>
+                        </div>
+                        <div class="water-glass-sheen"></div>
+                    </div>
+
+                    <!-- Outer Crisp SVG Progress Ring -->
                     <svg class="progress-ring" viewBox="0 0 260 260">
                         <circle class="ring-bg" cx="130" cy="130" r="118"></circle>
                         <circle class="ring-fg" id="ring-progress" cx="130" cy="130" r="118"></circle>
                     </svg>
+
                     <div class="ring-center">
                         <div id="timer-display" class="time-text">25:00</div>
                         <div id="timer-status" class="status-text">READY</div>
@@ -82,6 +130,24 @@
                 </div>
 
                 <div class="timer-bottom-controls">
+                    <!-- Soothing Ambient Focus Soundscapes -->
+                    <div class="ambient-sound-box">
+                        <div class="ambient-sound-head">
+                            <span class="field-caption" style="margin-bottom: 0;">FOCUS AMBIENCE</span>
+                            <div class="ambient-vol-wrap" title="Ambient volume">
+                                <span class="ambient-vol-icon" aria-hidden="true">♪</span>
+                                <input type="range" id="ambient-volume" class="ambient-vol-slider" min="0" max="100" value="45" aria-label="Ambient Sound Volume">
+                            </div>
+                        </div>
+                        <div class="ambient-pills" id="ambient-pill-group">
+                            <button type="button" class="ambient-pill active" data-ambient="off">Off</button>
+                            <button type="button" class="ambient-pill" data-ambient="rain">🌧 Rain</button>
+                            <button type="button" class="ambient-pill" data-ambient="fire">🔥 Fireplace</button>
+                            <button type="button" class="ambient-pill" data-ambient="river">🌊 River</button>
+                            <button type="button" class="ambient-pill" data-ambient="wind">💨 Wind</button>
+                        </div>
+                    </div>
+
                     <div class="label-picker">
                         <div class="label-picker-head">
                             <span class="field-caption" style="margin-bottom: 0;">SESSION LABEL</span>
@@ -138,14 +204,14 @@
                     <h2 class="card-title">UTILITIES</h2>
                     <div class="quick-actions">
                         <button type="button" id="btn-quick-notify" class="btn-outline">Enable Desktop Alerts</button>
-                        <button type="button" id="btn-guide-card" class="btn-outline">Open Quick Guide</button>
+                        <button type="button" id="btn-guide-card" class="btn-outline">Open Interactive Guide</button>
                     </div>
                 </section>
             </aside>
         </main>
     </div>
 
-    <!-- Manage Session Labels Modal (With Custom Color Picker) -->
+    <!-- Manage Session Labels Modal -->
     <div id="label-modal" class="modal-backdrop hidden">
         <div class="modal-card">
             <div class="modal-header">
@@ -167,20 +233,28 @@
         </div>
     </div>
 
-    <!-- Quick Guide Modal -->
-    <div id="guide-modal" class="modal-backdrop hidden">
-        <div class="modal-card">
+    <!-- Step-by-Step Interactive Walkthrough Modal -->
+    <div id="guide-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="guide-step-title">
+        <div class="modal-card guide-wizard-card">
             <div class="modal-header">
-                <h2>Welcome to FocusFlow</h2>
-                <button type="button" id="btn-close-guide-x" class="icon-btn-sm" aria-label="Close">✕</button>
+                <span id="guide-step-badge" class="guide-step-badge">STEP 1 OF 5</span>
+                <button type="button" id="btn-close-guide-x" class="icon-btn-sm" aria-label="Close Guide">✕</button>
             </div>
-            <ol class="guide-steps">
-                <li><strong>Pick Focus + Break Type:</strong> Choose Focus and glide the break switch between Short Break (5–12m) or Long Break (15–50m).</li>
-                <li><strong>Color-Code Labels:</strong> Tap <em>+ Add Session</em> to create, rename, or pick custom colors for each label.</li>
-                <li><strong>Track Progress:</strong> Completed sessions sync to History and Date-Wise Analytics automatically.</li>
-                <li><strong>Switch Themes Anytime:</strong> Tap the palette icon in the top bar to pick from 10 soothing themes.</li>
-            </ol>
-            <button type="button" id="btn-close-guide" class="btn-primary" style="width: 100%; margin-top: 18px;">GOT IT</button>
+
+            <div class="guide-stage">
+                <div id="guide-step-icon" class="guide-step-icon" aria-hidden="true">⏱</div>
+                <h2 id="guide-step-title" class="guide-step-title">Welcome to FocusFlow</h2>
+                <p id="guide-step-body" class="guide-step-body"></p>
+                <div id="guide-step-tip" class="guide-step-tip"></div>
+            </div>
+
+            <div class="guide-dots" id="guide-dots" aria-hidden="true"></div>
+
+            <div class="guide-footer">
+                <button type="button" id="btn-guide-prev" class="btn-secondary guide-nav-btn">BACK</button>
+                <button type="button" id="btn-guide-skip" class="guide-skip-link">Skip</button>
+                <button type="button" id="btn-guide-next" class="btn-primary guide-nav-btn">NEXT →</button>
+            </div>
         </div>
     </div>
 
