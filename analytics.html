@@ -68,7 +68,7 @@
                 </div>
             </section>
 
-            <!-- Date-Wise Analysis (Ghibli Stacked Bar + Calendar + This Week Only Roller) -->
+            <!-- Date-Wise Analysis: 3-Column Desktop Layout (Left: Calendar, Middle: Week Roller, Right: Rectangular Bar) -->
             <section class="card dwa-card" id="date-wise-section">
                 <div class="dwa-header">
                     <h2 class="card-title" style="margin-bottom: 0;">DATE-WISE ANALYSIS</h2>
@@ -76,8 +76,8 @@
                 </div>
 
                 <div class="dwa-stage">
-                    <!-- Left Controls: Calendar + Fixed Date Roller -->
-                    <div class="dwa-left">
+                    <!-- Column 1 (Left): Calendar & Toggle -->
+                    <div class="dwa-col-cal">
                         <div class="dwa-cal-wrap">
                             <button type="button" id="btn-open-calendar" class="dwa-cal-btn" aria-haspopup="dialog" aria-expanded="false">
                                 <svg class="dwa-cal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -105,8 +105,11 @@
                                 <div id="cal-days-grid" class="dwa-cal-grid"></div>
                             </div>
                         </div>
+                        <span class="dwa-cal-hint">Pick any past date</span>
+                    </div>
 
-                        <!-- This Week Only Roller -->
+                    <!-- Column 2 (Middle): This Week Only Scroll/Drag Date System -->
+                    <div class="dwa-col-roller">
                         <div class="dwa-roller-block">
                             <span class="dwa-week-tag">THIS WEEK ONLY</span>
                             <div class="dwa-roller-row">
@@ -126,15 +129,9 @@
                         </div>
                     </div>
 
-                    <!-- Angled Connector Lines (Sketch Visual) -->
-                    <svg class="dwa-connector" viewBox="0 0 60 280" preserveAspectRatio="none" aria-hidden="true">
-                        <line x1="0" y1="140" x2="60" y2="10" stroke="currentColor" stroke-width="1.8" stroke-dasharray="4 3"></line>
-                        <line x1="0" y1="140" x2="60" y2="270" stroke="currentColor" stroke-width="1.8" stroke-dasharray="4 3"></line>
-                    </svg>
-
-                    <!-- Right: Ghibli Animated Stacked Bar with Continuous Glowing Border -->
-                    <div class="dwa-right">
-                        <div class="ghibli-bar-frame">
+                    <!-- Column 3 (Right): Tall Rectangular Ghibli Bar with Dynamic Glowing Border -->
+                    <div class="dwa-col-bar">
+                        <div class="ghibli-bar-frame" id="ghibli-bar-frame">
                             <div class="ghibli-bar-inner" id="dwa-stacked-bar">
                                 <div class="ghibli-empty">No sessions logged on this day.</div>
                             </div>
