@@ -71,7 +71,7 @@
                 </div>
             </section>
 
-            <!-- Date-Wise Analysis: 3-Column Layout (Left: Inline Calendar, Middle: Week Roller, Right: Static Glow Bar) -->
+            <!-- Date-Wise Analysis: 3-Column Layout (Left: Inline Calendar, Middle: Day Summary + Timeline, Right: Static Glow Bar) -->
             <section class="card dwa-card" id="date-wise-section">
                 <div class="dwa-header">
                     <h2 class="card-title" style="margin-bottom: 0;">DATE-WISE ANALYSIS</h2>
@@ -107,24 +107,48 @@
                         </div>
                     </div>
 
-                    <!-- Column 2 (Middle): This Week Only Scroll/Drag Date System -->
-                    <div class="dwa-col-roller">
-                        <div class="dwa-roller-block">
-                            <span class="dwa-week-tag">THIS WEEK ONLY</span>
-                            <div class="dwa-roller-row">
-                                <span class="dwa-date-fixed">Date -</span>
-                                <div class="dwa-roller-shell">
-                                    <button type="button" id="roller-up" class="dwa-roller-arrow" aria-label="Previous day in week">▲</button>
-                                    <div id="day-roller" class="dwa-roller-viewport" title="Scroll or drag up/down (Sun–Sat)">
-                                        <div id="day-roller-display" class="dwa-roller-value">
-                                            <span id="roller-day-name" class="roller-day-name">Friday</span>
-                                            <span id="roller-day-sub" class="roller-day-sub">20 Nov</span>
-                                        </div>
+                    <!-- Column 2 (Middle): Compact Day Summary + Scrollable Chronological Timeline -->
+                    <div class="dwa-col-middle">
+                        <!-- Top Day Summary Scorecard -->
+                        <div class="dwa-summary-card">
+                            <div class="dwa-summary-top">
+                                <div>
+                                    <span class="dwa-summary-kicker" id="dwa-summary-day">DAY SUMMARY</span>
+                                    <div class="dwa-summary-main">
+                                        <span id="dwa-day-mins" class="dwa-summary-mins">0m</span>
+                                        <span id="dwa-day-count" class="dwa-summary-count">0 sessions</span>
                                     </div>
-                                    <button type="button" id="roller-down" class="dwa-roller-arrow" aria-label="Next day in week">▼</button>
                                 </div>
+                                <span id="dwa-trend-pill" class="dwa-trend-pill neutral">No prior day</span>
                             </div>
-                            <span class="dwa-roller-hint">Scroll or drag (Sun–Sat)</span>
+
+                            <div class="dwa-summary-meta-row">
+                                <span class="dwa-top-label-wrap">
+                                    <span class="dwa-meta-caption">Top:</span>
+                                    <span id="dwa-top-label-dot" class="dwa-top-dot hidden"></span>
+                                    <strong id="dwa-top-label">—</strong>
+                                </span>
+
+                                <button type="button" id="btn-edit-goal" class="dwa-goal-edit-btn" title="Set daily focus goal">
+                                    <span id="dwa-goal-text">0 / 60m goal</span>
+                                    <span class="dwa-goal-pencil" aria-hidden="true">✎</span>
+                                </button>
+                            </div>
+
+                            <div class="dwa-goal-track" aria-label="Daily goal progress">
+                                <div id="dwa-goal-fill" class="dwa-goal-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Scrollable Chronological Mini Timeline -->
+                        <div class="dwa-timeline-card">
+                            <div class="dwa-timeline-head">
+                                <span class="dwa-timeline-title">SESSION TIMELINE</span>
+                                <span id="dwa-timeline-sub" class="dwa-timeline-sub">Chronological</span>
+                            </div>
+                            <div id="dwa-timeline-list" class="dwa-timeline-list">
+                                <p class="dwa-timeline-empty">No sessions logged on this day.</p>
+                            </div>
                         </div>
                     </div>
 
