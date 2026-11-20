@@ -51,7 +51,7 @@
                 </div>
             </section>
 
-            <!-- Weekly Chart & Label Breakdown -->
+            <!-- Weekly Chart & Last 7 Days Label Breakdown -->
             <section class="analytics-split">
                 <div class="card">
                     <h2 class="card-title">LAST 7 DAYS FOCUS (MINUTES)</h2>
@@ -61,14 +61,17 @@
                 </div>
 
                 <div class="card">
-                    <h2 class="card-title">TIME BY LABEL</h2>
+                    <div class="card-header-row" style="margin-bottom: 14px;">
+                        <h2 class="card-title" style="margin-bottom: 0;">TIME BY LABEL</h2>
+                        <span class="dwa-sub-pill">LAST 7 DAYS</span>
+                    </div>
                     <div id="label-breakdown" class="breakdown-list">
-                        <p class="muted-text">Complete a session to see your label breakdown.</p>
+                        <p class="muted-text">Complete a session in the last 7 days to see your label breakdown.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Date-Wise Analysis: 3-Column Desktop Layout (Left: Calendar, Middle: Week Roller, Right: Rectangular Bar) -->
+            <!-- Date-Wise Analysis: 3-Column Layout (Left: Inline Calendar, Middle: Week Roller, Right: Static Glow Bar) -->
             <section class="card dwa-card" id="date-wise-section">
                 <div class="dwa-header">
                     <h2 class="card-title" style="margin-bottom: 0;">DATE-WISE ANALYSIS</h2>
@@ -76,36 +79,32 @@
                 </div>
 
                 <div class="dwa-stage">
-                    <!-- Column 1 (Left): Calendar & Toggle -->
+                    <!-- Column 1 (Left): Inline Always-Visible Calendar -->
                     <div class="dwa-col-cal">
-                        <div class="dwa-cal-wrap">
-                            <button type="button" id="btn-open-calendar" class="dwa-cal-btn" aria-haspopup="dialog" aria-expanded="false">
-                                <svg class="dwa-cal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <rect x="3" y="4" width="18" height="18" rx="3"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                    <circle cx="8.5" cy="14.5" r="1" fill="currentColor"></circle>
-                                    <circle cx="12" cy="14.5" r="1" fill="currentColor"></circle>
-                                    <circle cx="15.5" cy="14.5" r="1" fill="currentColor"></circle>
-                                </svg>
-                                <span>Calendar</span>
-                            </button>
-
-                            <!-- Custom Hoverable Calendar Popover -->
-                            <div id="dwa-calendar-popover" class="dwa-cal-popover hidden" role="dialog" aria-label="Choose a past date">
-                                <div class="dwa-cal-nav">
-                                    <button type="button" id="cal-prev-month" class="icon-btn-sm" aria-label="Previous Month">‹</button>
-                                    <span id="cal-month-label" class="dwa-cal-month"></span>
-                                    <button type="button" id="cal-next-month" class="icon-btn-sm" aria-label="Next Month">›</button>
-                                </div>
-                                <div class="dwa-cal-weekdays">
-                                    <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-                                </div>
-                                <div id="cal-days-grid" class="dwa-cal-grid"></div>
-                            </div>
+                        <div class="dwa-cal-title-row">
+                            <svg class="dwa-cal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                <circle cx="8.5" cy="14.5" r="1" fill="currentColor"></circle>
+                                <circle cx="12" cy="14.5" r="1" fill="currentColor"></circle>
+                                <circle cx="15.5" cy="14.5" r="1" fill="currentColor"></circle>
+                            </svg>
+                            <span class="dwa-cal-heading">Calendar</span>
                         </div>
-                        <span class="dwa-cal-hint">Pick any past date</span>
+
+                        <div class="dwa-cal-inline" role="region" aria-label="Choose a past date">
+                            <div class="dwa-cal-nav">
+                                <button type="button" id="cal-prev-month" class="icon-btn-sm" aria-label="Previous Month">‹</button>
+                                <span id="cal-month-label" class="dwa-cal-month"></span>
+                                <button type="button" id="cal-next-month" class="icon-btn-sm" aria-label="Next Month">›</button>
+                            </div>
+                            <div class="dwa-cal-weekdays">
+                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                            </div>
+                            <div id="cal-days-grid" class="dwa-cal-grid"></div>
+                        </div>
                     </div>
 
                     <!-- Column 2 (Middle): This Week Only Scroll/Drag Date System -->
@@ -129,15 +128,12 @@
                         </div>
                     </div>
 
-                    <!-- Column 3 (Right): Tall Rectangular Ghibli Bar with Dynamic Glowing Border -->
+                    <!-- Column 3 (Right): Tall Rectangular Ghibli Bar with Static Per-Color Glare -->
                     <div class="dwa-col-bar">
-                        <div class="ghibli-bar-frame" id="ghibli-bar-frame">
-                            <div class="ghibli-bar-inner" id="dwa-stacked-bar">
-                                <div class="ghibli-empty">No sessions logged on this day.</div>
-                            </div>
+                        <div class="ghibli-bar-stack" id="dwa-stacked-bar">
+                            <div class="ghibli-empty">No sessions logged on this day.</div>
                         </div>
                         <div class="dwa-ground-line" aria-hidden="true"></div>
-                        <div id="dwa-legend" class="dwa-legend"></div>
                     </div>
                 </div>
             </section>
