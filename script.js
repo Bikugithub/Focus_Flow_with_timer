@@ -103,6 +103,17 @@ function clamp(val, min, max) {
     return Math.min(max, Math.max(min, val));
 }
 
+function normalizeSettings(raw) {
+    const merged = Object.assign({}, DEFAULT_SETTINGS, raw || {});
+    merged.focus = clamp(parseInt(merged.focus, 10) || 25, 1, 180);
+    merged.short = clamp(parseInt(merged.short, 10) || SHORT_BREAK_MIN, SHORT_BREAK_MIN, SHORT_BREAK_MAX);
+    merged.long = clamp(parseInt(merged.long, 10) || LONG_BREAK_MIN, LONG_BREAK_MIN, LONG_BREAK_MAX);
+    merged.sound = Boolean(merged.sound);
+    merged.soundType = merged.soundType || "chime";
+    merged.autoStart = Boolean(merged.autoStart);
+    return merged;
+}
+
 function hexToRgb(hex) {
     const clean = String(hex || "#65a7d6").replace("#", "").trim();
     const full = clean.length === 3
@@ -134,11 +145,8 @@ function makeGhibliGradient(hex) {
     return `linear-gradient(135deg, ${light} 0%, ${hex} 55%, ${deep} 100%)`;
 }
 
-// Enforce Short Break (5-12) and Long Break (15-50) bounds on loaded settings
-let settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON("ff_settings", {}));
-settings.focus = clamp(parseInt(settings.focus, 10) || 25, 1, 180);
-settings.short = clamp(parseInt(settings.short, 10) || SHORT_BREAK_MIN, SHORT_BREAK_MIN, SHORT_BREAK_MAX);
-settings.long = clamp(parseInt(settings.long, 10) || LONG_BREAK_MIN, LONG_BREAK_MIN, LONG_BREAK_MAX);
+// Local State Initialization
+let settings = normalizeSettings(loadJSON("ff_settings", {}));
 saveJSON("ff_settings", settings);
 
 let historyLog = loadJSON("ff_history", []);
@@ -153,6 +161,9 @@ if (!Array.isArray(sessionLabels) || sessionLabels.length === 0) {
 let labelColors = Object.assign({}, DEFAULT_LABEL_COLORS, loadJSON("ff_label_colors", {}));
 saveJSON("ff_label_colors", labelColors);
 
+let dailyGoalMins = clamp(parseInt(localStorage.getItem("ff_daily_goal"), 10) || 60, 5, 1440);
+let userProfileName = (localStorage.getItem("ff_user_name") || "").trim();
+
 function getLabelColor(labelName) {
     const key = labelName || "General";
     if (labelColors[key]) return labelColors[key];
@@ -162,6 +173,7 @@ function getLabelColor(labelName) {
 }
 
 let currentUser = null;
+let onPreferencesSynced = null; // Page-specific UI refresh hook
 
 // ==========================================
 // IMMERSIVE INTERACTIVE BACKGROUND ENGINE
@@ -200,7 +212,6 @@ function initInteractiveBackground() {
     document.body.prepend(breathLayer);
     document.body.prepend(cursorGlow);
 
-    // Smooth cursor-following aurora on desktop/laptop
     let targetX = window.innerWidth * 0.5;
     let targetY = window.innerHeight * 0.32;
     let currX = targetX;
@@ -240,7 +251,8 @@ const allThemeIds = THEME_PALETTE.map((t) => t.id);
 let currentTheme = localStorage.getItem("ff_theme_v3") || "sage-mist";
 if (!allThemeIds.includes(currentTheme)) currentTheme = "sage-mist";
 
-function applyTheme(theme) {
+function applyTheme(theme, skipCloudSync) {
+    if (!allThemeIds.includes(theme)) return;
     currentTheme = theme;
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("ff_theme_v3", theme);
@@ -251,6 +263,10 @@ function applyTheme(theme) {
 
     if (document.getElementById("focus-chart")) {
         drawAnalyticsChart();
+    }
+
+    if (!skipCloudSync) {
+        savePreferencesToCloud();
     }
 }
 
@@ -329,7 +345,7 @@ function setupThemePalettePopover() {
     popover.querySelectorAll("[data-theme-pick]").forEach((btn) => {
         btn.addEventListener("click", (e) => {
             e.stopPropagation();
-            applyTheme(btn.getAttribute("data-theme-pick"));
+            applyTheme(btn.getAttribute("data-theme-pick"), false);
             closePopover();
         });
     });
@@ -350,23 +366,136 @@ function setupThemePalettePopover() {
 }
 
 setupThemePalettePopover();
-applyTheme(currentTheme);
+applyTheme(currentTheme, true);
 
 document.querySelectorAll(".theme-card").forEach((card) => {
     card.addEventListener("click", () => {
-        applyTheme(card.getAttribute("data-theme-pick"));
+        applyTheme(card.getAttribute("data-theme-pick"), false);
     });
 });
 
 // ==========================================
-// EMAIL & PASSWORD AUTHENTICATION
+// USER PREFERENCES CLOUD SYNC (LABELS, COLORS, SETTINGS, THEME, NAME)
+// ==========================================
+async function savePreferencesToCloud() {
+    if (!db || !currentUser) return;
+    try {
+        const payload = {
+            user_id: currentUser.id,
+            full_name: userProfileName || "",
+            theme: currentTheme,
+            daily_goal: dailyGoalMins,
+            settings: settings,
+            session_labels: sessionLabels,
+            label_colors: labelColors,
+            updated_at: new Date().toISOString()
+        };
+
+        const { error } = await db
+            .from("user_preferences")
+            .upsert(payload, { onConflict: "user_id" });
+
+        if (error) {
+            console.error("Supabase preferences save error:", error.message);
+        }
+    } catch (e) {
+        console.error("Network error saving preferences:", e);
+    }
+}
+
+async function syncPreferencesFromCloud(overrideName) {
+    if (!db || !currentUser) return;
+    try {
+        const { data, error } = await db
+            .from("user_preferences")
+            .select("*")
+            .eq("user_id", currentUser.id)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Supabase preferences fetch error:", error.message);
+            return;
+        }
+
+        const metaName = (currentUser.user_metadata && currentUser.user_metadata.full_name)
+            ? String(currentUser.user_metadata.full_name).trim()
+            : "";
+
+        if (!data) {
+            // First time this account syncs preferences — upload current local setup
+            userProfileName = (overrideName || metaName || userProfileName || "").trim();
+            try { localStorage.setItem("ff_user_name", userProfileName); } catch (e) {}
+            updateAuthUI();
+            await savePreferencesToCloud();
+            return;
+        }
+
+        let needsSaveBack = false;
+
+        if (overrideName && overrideName.trim()) {
+            userProfileName = overrideName.trim();
+            if (userProfileName !== (data.full_name || "").trim()) needsSaveBack = true;
+        } else if (data.full_name && data.full_name.trim()) {
+            userProfileName = data.full_name.trim();
+        } else if (metaName) {
+            userProfileName = metaName;
+            needsSaveBack = true;
+        }
+        try { localStorage.setItem("ff_user_name", userProfileName); } catch (e) {}
+
+        if (data.theme && allThemeIds.includes(data.theme)) {
+            applyTheme(data.theme, true);
+        }
+
+        if (data.daily_goal) {
+            dailyGoalMins = clamp(parseInt(data.daily_goal, 10) || 60, 5, 1440);
+            try { localStorage.setItem("ff_daily_goal", String(dailyGoalMins)); } catch (e) {}
+        }
+
+        if (data.settings && typeof data.settings === "object" && Object.keys(data.settings).length > 0) {
+            settings = normalizeSettings(data.settings);
+            saveJSON("ff_settings", settings);
+        }
+
+        if (Array.isArray(data.session_labels) && data.session_labels.length > 0) {
+            sessionLabels = data.session_labels.slice();
+            saveJSON("ff_custom_labels", sessionLabels);
+        }
+
+        if (data.label_colors && typeof data.label_colors === "object" && Object.keys(data.label_colors).length > 0) {
+            labelColors = Object.assign({}, DEFAULT_LABEL_COLORS, data.label_colors);
+            saveJSON("ff_label_colors", labelColors);
+        }
+
+        updateAuthUI();
+        if (typeof onPreferencesSynced === "function") {
+            onPreferencesSynced();
+        }
+        if (needsSaveBack) {
+            await savePreferencesToCloud();
+        }
+    } catch (e) {
+        console.error("Network error fetching preferences:", e);
+    }
+}
+
+// ==========================================
+// NAME, EMAIL & PASSWORD AUTHENTICATION
 // ==========================================
 async function initAuth() {
     if (!db) return;
     try {
         const { data } = await db.auth.getSession();
         currentUser = data && data.session ? data.session.user : null;
+        if (currentUser && !userProfileName && currentUser.user_metadata && currentUser.user_metadata.full_name) {
+            userProfileName = String(currentUser.user_metadata.full_name).trim();
+            try { localStorage.setItem("ff_user_name", userProfileName); } catch (e) {}
+        }
         updateAuthUI();
+
+        if (currentUser) {
+            await syncPreferencesFromCloud();
+        }
 
         db.auth.onAuthStateChange((_event, session) => {
             currentUser = session ? session.user : null;
@@ -384,11 +513,17 @@ function updateAuthUI() {
     if (!authStatus || !authForm || !logoutBtn) return;
 
     if (currentUser) {
-        authStatus.textContent = `Signed in as ${currentUser.email}`;
+        const metaName = (currentUser.user_metadata && currentUser.user_metadata.full_name)
+            ? String(currentUser.user_metadata.full_name).trim()
+            : "";
+        const displayName = userProfileName || metaName;
+        authStatus.textContent = displayName
+            ? `Signed in as ${displayName} (${currentUser.email})`
+            : `Signed in as ${currentUser.email}`;
         authForm.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
     } else {
-        authStatus.textContent = "Log in or create an account to sync your focus sessions to your personal profile.";
+        authStatus.textContent = "Log in or sign up to sync your sessions, custom labels, colors, and settings across devices.";
         authForm.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
     }
@@ -397,6 +532,7 @@ function updateAuthUI() {
 const authReady = initAuth();
 
 const authForm = document.getElementById("auth-form");
+const authNameInp = document.getElementById("auth-name");
 const authEmailInp = document.getElementById("auth-email");
 const authPassInp = document.getElementById("auth-password");
 const loginBtn = document.getElementById("btn-email-login");
@@ -415,6 +551,7 @@ if (authForm) {
             setAuthMessage("Add your Supabase Publishable Key in script.js first.");
             return;
         }
+        const enteredName = authNameInp ? authNameInp.value.trim() : "";
         const email = authEmailInp.value.trim();
         const password = authPassInp.value;
 
@@ -423,12 +560,22 @@ if (authForm) {
         setAuthMessage("Logging in...");
 
         try {
-            const { error } = await db.auth.signInWithPassword({ email, password });
+            const { data, error } = await db.auth.signInWithPassword({ email, password });
             if (error) {
                 setAuthMessage(error.message);
             } else {
+                currentUser = data && data.user ? data.user : currentUser;
+                if (enteredName && currentUser) {
+                    await db.auth.updateUser({ data: { full_name: enteredName } });
+                }
+                await Promise.all([
+                    syncPreferencesFromCloud(enteredName),
+                    syncLogsFromCloud()
+                ]);
                 authPassInp.value = "";
-                setAuthMessage("Logged in successfully!");
+                if (authNameInp) authNameInp.value = "";
+                updateAuthUI();
+                setAuthMessage("Logged in & synced!");
                 setTimeout(() => setAuthMessage(""), 2500);
             }
         } finally {
@@ -442,9 +589,15 @@ if (authForm) {
             setAuthMessage("Add your Supabase Publishable Key in script.js first.");
             return;
         }
+        const fullName = authNameInp ? authNameInp.value.trim() : "";
         const email = authEmailInp.value.trim();
         const password = authPassInp.value;
 
+        if (fullName.length < 2) {
+            setAuthMessage("Please enter your full name to sign up.");
+            if (authNameInp) authNameInp.focus();
+            return;
+        }
         if (!email || !email.includes("@")) {
             setAuthMessage("Please enter a valid email address.");
             return;
@@ -459,15 +612,31 @@ if (authForm) {
         setAuthMessage("Creating account...");
 
         try {
-            const { data, error } = await db.auth.signUp({ email, password });
+            const { data, error } = await db.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { full_name: fullName }
+                }
+            });
             if (error) {
                 setAuthMessage(error.message);
             } else if (data && data.session) {
+                currentUser = data.session.user;
+                userProfileName = fullName;
+                try { localStorage.setItem("ff_user_name", userProfileName); } catch (e) {}
+                await Promise.all([
+                    savePreferencesToCloud(),
+                    syncLogsFromCloud()
+                ]);
                 authPassInp.value = "";
-                setAuthMessage("Account created and signed in!");
-                setTimeout(() => setAuthMessage(""), 2500);
+                if (authNameInp) authNameInp.value = "";
+                updateAuthUI();
+                setAuthMessage(`Welcome, ${fullName}! Account created and signed in.`);
+                setTimeout(() => setAuthMessage(""), 3000);
             } else {
                 authPassInp.value = "";
+                if (authNameInp) authNameInp.value = "";
                 setAuthMessage("Account created! Check your inbox to confirm, then log in.");
             }
         } finally {
@@ -482,8 +651,10 @@ if (logoutBtn) {
         if (!db) return;
         await db.auth.signOut();
         currentUser = null;
+        userProfileName = "";
         historyLog = [];
         saveJSON("ff_history", historyLog);
+        try { localStorage.removeItem("ff_user_name"); } catch (e) {}
         updateAuthUI();
         setAuthMessage("Signed out successfully.");
         setTimeout(() => setAuthMessage(""), 2500);
@@ -491,15 +662,17 @@ if (logoutBtn) {
 }
 
 // ==========================================
-// SUPABASE CLOUD SYNC & FEEDBACK HELPERS
+// SUPABASE CLOUD SYNC (STRICTLY PER-USER ONLY)
 // ==========================================
 async function syncLogsFromCloud() {
-    if (!db) return;
+    if (!db || !currentUser) return;
     try {
-        let query = db.from("focus_logs").select("*").order("created_at", { ascending: false });
-        if (currentUser) query = query.eq("user_id", currentUser.id);
+        const { data, error } = await db
+            .from("focus_logs")
+            .select("*")
+            .eq("user_id", currentUser.id)
+            .order("created_at", { ascending: false });
 
-        const { data, error } = await query;
         if (error) {
             console.error("Supabase fetch error:", error.message);
             return;
@@ -512,16 +685,16 @@ async function syncLogsFromCloud() {
 }
 
 async function addLogToCloud(entry) {
-    if (!db) return entry;
+    if (!db || !currentUser) return entry;
     try {
         const payload = {
+            user_id: currentUser.id,
             date: entry.date,
             time: entry.time,
             minutes: entry.minutes,
             label: entry.label,
             task: entry.task
         };
-        if (currentUser) payload.user_id = currentUser.id;
 
         const { data, error } = await db.from("focus_logs").insert([payload]).select().single();
         if (error) {
@@ -535,18 +708,16 @@ async function addLogToCloud(entry) {
 }
 
 async function deleteLogFromCloud(id) {
-    if (!db) return;
+    if (!db || !currentUser) return;
     try {
-        await db.from("focus_logs").delete().eq("id", id);
+        await db.from("focus_logs").delete().eq("id", id).eq("user_id", currentUser.id);
     } catch (e) {}
 }
 
 async function clearAllLogsFromCloud() {
-    if (!db) return;
+    if (!db || !currentUser) return;
     try {
-        let query = db.from("focus_logs").delete().gt("id", 0);
-        if (currentUser) query = query.eq("user_id", currentUser.id);
-        await query;
+        await db.from("focus_logs").delete().eq("user_id", currentUser.id);
     } catch (e) {}
 }
 
@@ -556,14 +727,30 @@ async function submitFeedbackToCloud(rating, message, statusEl) {
         if (statusEl) statusEl.textContent = "Feedback saved locally (connect Supabase key to sync).";
         return true;
     }
+
+    const displayName = userProfileName
+        || (currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name)
+        || "Guest";
+    const emailVal = currentUser ? currentUser.email : "Guest";
+
     const { error } = await db.from("feedback").insert([{
-        user_email: currentUser ? currentUser.email : "Anonymous",
+        user_name: displayName,
+        user_email: emailVal,
         rating: rating,
         message: message.trim()
     }]);
+
     if (error) {
-        if (statusEl) statusEl.textContent = "Could not send feedback: " + error.message;
-        return false;
+        // Fallback if user_name column was not added yet
+        const retry = await db.from("feedback").insert([{
+            user_email: currentUser ? `${displayName} (${currentUser.email})` : "Guest",
+            rating: rating,
+            message: message.trim()
+        }]);
+        if (retry.error) {
+            if (statusEl) statusEl.textContent = "Could not send feedback: " + retry.error.message;
+            return false;
+        }
     }
     if (statusEl) statusEl.textContent = "Thank you! Your feedback was sent.";
     return true;
@@ -799,9 +986,12 @@ if (timerDisplay) {
         timerState.label = sessionLabels[0] || "Study";
     }
 
-    // Dynamic Color-Coded Session Label Pills
     function renderLabelPills() {
         if (!pillGroupEl) return;
+        if (!sessionLabels.includes(timerState.label)) {
+            timerState.label = sessionLabels[0] || "Study";
+            saveJSON("ff_timer_state", timerState);
+        }
         pillGroupEl.innerHTML = "";
         sessionLabels.forEach((lbl) => {
             const color = getLabelColor(lbl);
@@ -821,7 +1011,6 @@ if (timerDisplay) {
         });
     }
 
-    // Manage Session Labels Modal (Add / Edit / Color Picker / Delete)
     const labelModal = document.getElementById("label-modal");
     const openLabelModalBtn = document.getElementById("btn-manage-labels");
     const closeLabelModalX = document.getElementById("btn-close-label-x");
@@ -884,6 +1073,7 @@ if (timerDisplay) {
                     labelColors[updated] = colorInp.value;
                     saveJSON("ff_custom_labels", sessionLabels);
                     saveJSON("ff_label_colors", labelColors);
+                    savePreferencesToCloud();
 
                     if (timerState.label === oldName) {
                         timerState.label = updated;
@@ -926,6 +1116,9 @@ if (timerDisplay) {
                     renderLabelPills();
                     updateTodayWidgets();
                 });
+                colorInp.addEventListener("change", () => {
+                    savePreferencesToCloud();
+                });
 
                 const actions = document.createElement("div");
                 actions.className = "label-manager-actions";
@@ -950,6 +1143,7 @@ if (timerDisplay) {
                     }
                     const removed = sessionLabels.splice(idx, 1)[0];
                     saveJSON("ff_custom_labels", sessionLabels);
+                    savePreferencesToCloud();
                     if (timerState.label === removed) {
                         timerState.label = sessionLabels[0];
                         saveJSON("ff_timer_state", timerState);
@@ -1005,6 +1199,7 @@ if (timerDisplay) {
                 labelColors[name] = pickedColor;
                 saveJSON("ff_custom_labels", sessionLabels);
                 saveJSON("ff_label_colors", labelColors);
+                savePreferencesToCloud();
                 timerState.label = name;
                 saveJSON("ff_timer_state", timerState);
                 newLabelInput.value = "";
@@ -1096,7 +1291,6 @@ if (timerDisplay) {
             ? (isFocus ? `FOCUSING • ${timerState.label.toUpperCase()}` : (timerState.mode === "long" ? "LONG BREAK..." : "SHORT BREAK..."))
             : "READY";
 
-        // Toggle calm breathing background aura while timer is running
         document.body.classList.toggle("focus-active", timerState.isRunning);
     }
 
@@ -1123,7 +1317,6 @@ if (timerDisplay) {
             saveJSON("ff_history", historyLog);
             updateTodayWidgets();
             sendDesktopNotification("Focus Session Complete!", `${settings.focus} min logged under ${entry.label}.`);
-            // Transition to whichever break the user chose on the gliding switch
             timerState.mode = timerState.preferredBreak || "short";
         } else {
             sendDesktopNotification("Break Complete!", "Ready for your next calm focus session.");
@@ -1189,7 +1382,6 @@ if (timerDisplay) {
         focusModeBtn.addEventListener("click", () => switchMode("focus"));
     }
 
-    // User-controlled gliding Short Break / Long Break switch
     breakGlideOpts.forEach((opt) => {
         opt.addEventListener("click", () => {
             const chosenBreak = opt.getAttribute("data-break");
@@ -1210,6 +1402,12 @@ if (timerDisplay) {
             });
         });
     }
+
+    onPreferencesSynced = () => {
+        renderLabelPills();
+        updateTodayWidgets();
+        renderTimerUI();
+    };
 
     renderLabelPills();
     updateTodayWidgets();
@@ -1321,6 +1519,11 @@ if (fullHistoryList) {
         }
     });
 
+    onPreferencesSynced = () => {
+        populateHistoryLabelFilter();
+        renderFullHistory();
+    };
+
     populateHistoryLabelFilter();
     renderFullHistory();
     authReady.then(() => syncLogsFromCloud().then(() => {
@@ -1408,7 +1611,6 @@ function drawAnalyticsChart() {
     });
 }
 
-// Date-Wise Analysis Engine (Inline Calendar + Week Roller + Static Per-Color Glare Bar)
 let refreshDateWiseAnalysis = null;
 
 function initDateWiseAnalysis() {
@@ -1421,61 +1623,129 @@ function initDateWiseAnalysis() {
     const calMonthLabel = document.getElementById("cal-month-label");
     const calGrid = document.getElementById("cal-days-grid");
 
-    const rollerViewport = document.getElementById("day-roller");
-    const rollerDisplay = document.getElementById("day-roller-display");
-    const rollerDayName = document.getElementById("roller-day-name");
-    const rollerDaySub = document.getElementById("roller-day-sub");
-    const rollerUpBtn = document.getElementById("roller-up");
-    const rollerDownBtn = document.getElementById("roller-down");
+    const summaryDayEl = document.getElementById("dwa-summary-day");
+    const dayMinsEl = document.getElementById("dwa-day-mins");
+    const dayCountEl = document.getElementById("dwa-day-count");
+    const trendPillEl = document.getElementById("dwa-trend-pill");
+    const topLabelEl = document.getElementById("dwa-top-label");
+    const topLabelDotEl = document.getElementById("dwa-top-label-dot");
+    const editGoalBtn = document.getElementById("btn-edit-goal");
+    const goalTextEl = document.getElementById("dwa-goal-text");
+    const goalFillEl = document.getElementById("dwa-goal-fill");
 
+    const timelineSubEl = document.getElementById("dwa-timeline-sub");
+    const timelineListEl = document.getElementById("dwa-timeline-list");
     const stackedBarEl = document.getElementById("dwa-stacked-bar");
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayKey = getLocalDateKey(today);
 
-    const sunday = new Date(today);
-    sunday.setDate(today.getDate() - today.getDay());
-
-    const thisWeekDates = [];
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(sunday);
-        d.setDate(sunday.getDate() + i);
-        thisWeekDates.push(d);
-    }
-
     let selectedDateKey = todayKey;
-    let weekIndex = today.getDay();
     let calViewYear = today.getFullYear();
     let calViewMonth = today.getMonth();
     let lastBarSignature = "";
 
-    function animateRoller(direction) {
-        if (!rollerDisplay) return;
-        rollerDisplay.classList.remove("roll-anim-up", "roll-anim-down");
-        void rollerDisplay.offsetWidth;
-        rollerDisplay.classList.add(direction === "up" ? "roll-anim-up" : "roll-anim-down");
+    function getChronologicalSessions(dateKey) {
+        const items = historyLog.filter((item) => item.date === dateKey);
+        return items.slice().sort((a, b) => {
+            if (a.created_at && b.created_at) {
+                return new Date(a.created_at) - new Date(b.created_at);
+            }
+            return (Number(a.id) || 0) - (Number(b.id) || 0);
+        });
     }
 
-    function updateRollerUI() {
+    function renderDaySummaryAndTimeline() {
         const d = parseDateKey(selectedDateKey);
         const dayLong = d.toLocaleDateString(undefined, { weekday: "long" });
         const shortSub = d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
         const fullLabel = d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-        rollerDayName.textContent = dayLong;
-        rollerDaySub.textContent = shortSub;
         badgeEl.textContent = selectedDateKey === todayKey ? `Today • ${shortSub}` : fullLabel;
+        if (summaryDayEl) summaryDayEl.textContent = `${dayLong} • ${shortSub}`;
 
-        const inThisWeekIdx = thisWeekDates.findIndex((wd) => getLocalDateKey(wd) === selectedDateKey);
-        if (inThisWeekIdx !== -1) {
-            weekIndex = inThisWeekIdx;
-            rollerUpBtn.disabled = weekIndex <= 0;
-            rollerDownBtn.disabled = weekIndex >= 6;
+        const daySessions = getChronologicalSessions(selectedDateKey);
+        const totalMins = daySessions.reduce((sum, item) => sum + item.minutes, 0);
+
+        dayMinsEl.textContent = `${totalMins}m`;
+        dayCountEl.textContent = `${daySessions.length} session${daySessions.length === 1 ? "" : "s"}`;
+
+        const prevDate = new Date(d);
+        prevDate.setDate(d.getDate() - 1);
+        const prevKey = getLocalDateKey(prevDate);
+        const prevShort = prevDate.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+        const prevMins = historyLog
+            .filter((item) => item.date === prevKey)
+            .reduce((sum, item) => sum + item.minutes, 0);
+
+        const diff = totalMins - prevMins;
+        trendPillEl.className = "dwa-trend-pill";
+        if (totalMins === 0 && prevMins === 0) {
+            trendPillEl.textContent = `0m vs ${prevShort}`;
+        } else if (diff > 0) {
+            trendPillEl.classList.add("up");
+            trendPillEl.textContent = `+${diff}m vs ${prevShort}`;
+        } else if (diff < 0) {
+            trendPillEl.classList.add("down");
+            trendPillEl.textContent = `${diff}m vs ${prevShort}`;
         } else {
-            rollerUpBtn.disabled = false;
-            rollerDownBtn.disabled = false;
+            trendPillEl.textContent = `Same as ${prevShort}`;
         }
+
+        const totalsByLabel = {};
+        daySessions.forEach((item) => {
+            const lbl = item.label || "General";
+            totalsByLabel[lbl] = (totalsByLabel[lbl] || 0) + item.minutes;
+        });
+        const sortedLabels = Object.entries(totalsByLabel).sort((a, b) => b[1] - a[1]);
+
+        if (sortedLabels.length > 0) {
+            const [topName, topMins] = sortedLabels[0];
+            const topColor = getLabelColor(topName);
+            topLabelEl.textContent = `${topName} (${topMins}m)`;
+            topLabelDotEl.style.background = topColor;
+            topLabelDotEl.classList.remove("hidden");
+        } else {
+            topLabelEl.textContent = "—";
+            topLabelDotEl.classList.add("hidden");
+        }
+
+        const goalPct = Math.min(100, Math.round((totalMins / dailyGoalMins) * 100));
+        goalTextEl.textContent = `${totalMins} / ${dailyGoalMins}m goal`;
+        goalFillEl.style.width = `${goalPct}%`;
+
+        if (timelineSubEl) {
+            timelineSubEl.textContent = daySessions.length > 0
+                ? `${daySessions.length} block${daySessions.length === 1 ? "" : "s"}`
+                : "Empty";
+        }
+
+        timelineListEl.innerHTML = "";
+        if (daySessions.length === 0) {
+            timelineListEl.innerHTML = `<p class="dwa-timeline-empty">No sessions logged on this day.</p>`;
+            return;
+        }
+
+        daySessions.forEach((item) => {
+            const lbl = item.label || "General";
+            const color = getLabelColor(lbl);
+            const { r, g, b } = hexToRgb(color);
+            const row = document.createElement("div");
+            row.className = "dwa-tl-item";
+            row.innerHTML = `
+                <span class="dwa-tl-node" style="background:${color}; --tl-glow: rgba(${r}, ${g}, ${b}, 0.65);"></span>
+                <div class="dwa-tl-body">
+                    <div class="dwa-tl-top">
+                        <span>${escapeHTML(lbl)}</span>
+                        <span class="dwa-tl-time">• ${escapeHTML(item.time || "")}</span>
+                    </div>
+                    <span class="dwa-tl-task">${escapeHTML(item.task || "Focused Session")}</span>
+                </div>
+                <span class="dwa-tl-min">+${item.minutes}m</span>
+            `;
+            timelineListEl.appendChild(row);
+        });
     }
 
     function renderGhibliBar(forceAnimate) {
@@ -1514,7 +1784,6 @@ function initDateWiseAnalysis() {
 
             const seg = document.createElement("div");
             seg.className = "ghibli-segment";
-            // Flexible proportion + 26px minimum height so text is always readable
             seg.style.flex = `${pct} 0 26px`;
             seg.style.background = bg;
             seg.style.setProperty("--seg-edge", brightEdge);
@@ -1572,9 +1841,8 @@ function initDateWiseAnalysis() {
                 btn.addEventListener("click", () => {
                     if (cellKey === selectedDateKey) return;
                     selectedDateKey = cellKey;
-                    animateRoller("up");
-                    updateRollerUI();
                     renderCalendarGrid();
+                    renderDaySummaryAndTimeline();
                     renderGhibliBar(true);
                 });
             }
@@ -1582,63 +1850,19 @@ function initDateWiseAnalysis() {
         }
     }
 
-    function selectWeekIndex(newIdx, dir) {
-        const clamped = Math.max(0, Math.min(6, newIdx));
-        const targetKey = getLocalDateKey(thisWeekDates[clamped]);
-        if (targetKey === selectedDateKey && clamped === weekIndex) return;
-        weekIndex = clamped;
-        selectedDateKey = targetKey;
-        calViewYear = thisWeekDates[clamped].getFullYear();
-        calViewMonth = thisWeekDates[clamped].getMonth();
-        if (dir) animateRoller(dir);
-        updateRollerUI();
-        renderCalendarGrid();
-        renderGhibliBar(true);
+    if (editGoalBtn) {
+        editGoalBtn.addEventListener("click", () => {
+            const input = prompt("Set your daily focus goal (in minutes, 5–1440):", String(dailyGoalMins));
+            if (input === null) return;
+            const parsed = parseInt(input.trim(), 10);
+            if (!isNaN(parsed)) {
+                dailyGoalMins = clamp(parsed, 5, 1440);
+                try { localStorage.setItem("ff_daily_goal", String(dailyGoalMins)); } catch (e) {}
+                savePreferencesToCloud();
+                renderDaySummaryAndTimeline();
+            }
+        });
     }
-
-    rollerUpBtn.addEventListener("click", () => selectWeekIndex(weekIndex - 1, "down"));
-    rollerDownBtn.addEventListener("click", () => selectWeekIndex(weekIndex + 1, "up"));
-
-    let lastWheelAt = 0;
-    rollerViewport.addEventListener("wheel", (e) => {
-        e.preventDefault();
-        const now = Date.now();
-        if (now - lastWheelAt < 140) return;
-        lastWheelAt = now;
-        if (e.deltaY > 0) selectWeekIndex(weekIndex + 1, "up");
-        else if (e.deltaY < 0) selectWeekIndex(weekIndex - 1, "down");
-    }, { passive: false });
-
-    let dragStartY = null;
-    let dragAccum = 0;
-    const DRAG_STEP_PX = 28;
-
-    rollerViewport.addEventListener("pointerdown", (e) => {
-        dragStartY = e.clientY;
-        dragAccum = 0;
-        if (rollerViewport.setPointerCapture) {
-            try { rollerViewport.setPointerCapture(e.pointerId); } catch (err) {}
-        }
-    });
-
-    rollerViewport.addEventListener("pointermove", (e) => {
-        if (dragStartY === null) return;
-        const delta = e.clientY - dragStartY;
-        dragStartY = e.clientY;
-        dragAccum += delta;
-
-        if (dragAccum <= -DRAG_STEP_PX) {
-            dragAccum = 0;
-            selectWeekIndex(weekIndex + 1, "up");
-        } else if (dragAccum >= DRAG_STEP_PX) {
-            dragAccum = 0;
-            selectWeekIndex(weekIndex - 1, "down");
-        }
-    });
-
-    function endDrag() { dragStartY = null; dragAccum = 0; }
-    rollerViewport.addEventListener("pointerup", endDrag);
-    rollerViewport.addEventListener("pointercancel", endDrag);
 
     calPrevBtn.addEventListener("click", () => {
         calViewMonth--;
@@ -1654,8 +1878,8 @@ function initDateWiseAnalysis() {
     });
 
     refreshDateWiseAnalysis = () => {
-        updateRollerUI();
         renderCalendarGrid();
+        renderDaySummaryAndTimeline();
         renderGhibliBar(false);
     };
 }
@@ -1675,7 +1899,6 @@ if (document.getElementById("focus-chart")) {
         document.getElementById("metric-sessions").textContent = historyLog.length;
         document.getElementById("metric-avg").textContent = `${Math.round(last7Mins / 7)} min`;
 
-        // TIME BY LABEL — LAST 7 DAYS ONLY
         const breakdownEl = document.getElementById("label-breakdown");
         breakdownEl.innerHTML = "";
         const totalsByLabel = {};
@@ -1706,6 +1929,8 @@ if (document.getElementById("focus-chart")) {
         if (refreshDateWiseAnalysis) refreshDateWiseAnalysis();
     }
 
+    onPreferencesSynced = renderAnalytics;
+
     initDateWiseAnalysis();
     window.addEventListener("resize", drawAnalyticsChart);
     renderAnalytics();
@@ -1728,12 +1953,17 @@ if (settingsForm) {
     const notifyStatus = document.getElementById("notify-status");
     const notifyBtn = document.getElementById("btn-request-notify");
 
-    inpFocus.value = settings.focus;
-    inpShort.value = settings.short;
-    inpLong.value = settings.long;
-    inpSound.checked = settings.sound;
-    if (inpSoundType) inpSoundType.value = settings.soundType || "chime";
-    inpAuto.checked = settings.autoStart;
+    function syncSettingsFormInputs() {
+        inpFocus.value = settings.focus;
+        inpShort.value = settings.short;
+        inpLong.value = settings.long;
+        inpSound.checked = settings.sound;
+        if (inpSoundType) inpSoundType.value = settings.soundType || "chime";
+        inpAuto.checked = settings.autoStart;
+    }
+
+    syncSettingsFormInputs();
+    onPreferencesSynced = syncSettingsFormInputs;
 
     if (inpSoundType) {
         inpSoundType.addEventListener("change", () => {
@@ -1741,19 +1971,20 @@ if (settingsForm) {
         });
     }
 
-    settingsForm.addEventListener("submit", (e) => {
+    settingsForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        settings.focus = clamp(parseInt(inpFocus.value, 10) || 25, 1, 180);
-        settings.short = clamp(parseInt(inpShort.value, 10) || SHORT_BREAK_MIN, SHORT_BREAK_MIN, SHORT_BREAK_MAX);
-        settings.long = clamp(parseInt(inpLong.value, 10) || LONG_BREAK_MIN, LONG_BREAK_MIN, LONG_BREAK_MAX);
-        settings.sound = inpSound.checked;
-        settings.soundType = inpSoundType ? inpSoundType.value : "chime";
-        settings.autoStart = inpAuto.checked;
+        settings = normalizeSettings({
+            focus: inpFocus.value,
+            short: inpShort.value,
+            long: inpLong.value,
+            sound: inpSound.checked,
+            soundType: inpSoundType ? inpSoundType.value : "chime",
+            autoStart: inpAuto.checked
+        });
 
-        inpFocus.value = settings.focus;
-        inpShort.value = settings.short;
-        inpLong.value = settings.long;
+        syncSettingsFormInputs();
         saveJSON("ff_settings", settings);
+        await savePreferencesToCloud();
 
         const currentTimer = loadJSON("ff_timer_state", null);
         if (currentTimer && !currentTimer.isRunning) {
@@ -1762,7 +1993,9 @@ if (settingsForm) {
             saveJSON("ff_timer_state", currentTimer);
         }
 
-        feedback.textContent = "Settings saved (Short Break: 5–12m, Long Break: 15–50m).";
+        feedback.textContent = currentUser
+            ? "Settings saved & synced to your account."
+            : "Settings saved (Short Break: 5–12m, Long Break: 15–50m).";
         setTimeout(() => { feedback.textContent = ""; }, 2800);
     });
 
