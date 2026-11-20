@@ -67,10 +67,10 @@ const MOTIVATIONAL_QUOTES = [
 
 const GUIDE_STEPS = [
     {
-        icon: "💧",
+        icon: "✨",
         title: "Deep Focus, Visualized",
-        body: "FocusFlow turns every study or work block into a calm visual rhythm. Watch the crystalline water rise as you focus, drain gently during breaks, and pair your session with soothing rain, fireplace, river, or wind ambience.",
-        tip: "Tip: Once a timer starts, mode switching locks automatically so you stay committed—use Pause or Reset anytime."
+        body: "FocusFlow turns every study or work block into a calm visual rhythm. Watch the luminous golden ring sweep, dissolve into drifting stardust, and pair your session with soothing rain, fireplace, river, or wind ambience.",
+        tip: "Tip: Once a timer starts, mode and label switching lock automatically so you stay committed—use Pause or Reset anytime."
     },
     {
         icon: "🗂️",
@@ -296,6 +296,10 @@ function applyTheme(theme, skipCloudSync) {
 
     if (document.getElementById("focus-chart")) {
         drawAnalyticsChart();
+    }
+
+    if (typeof window.redrawCelestialRing === "function") {
+        window.redrawCelestialRing();
     }
 
     if (!skipCloudSync) {
@@ -913,7 +917,7 @@ if (guideModal) {
 }
 
 // ==========================================
-// WEB AUDIO API: COMPLETION CHIMES + AMBIENT SOUNDSCAPES
+// WEB AUDIO API: COMPLETION CHIMES + WARM AMBIENT SOUNDSCAPES
 // ==========================================
 let sharedAudioCtx = null;
 
@@ -981,7 +985,7 @@ function playChime(previewType) {
     } catch (e) {}
 }
 
-// Procedural Focus Ambient Sound Engine (Rain, Fireplace, River, Wind)
+// Procedural Focus Ambient Sound Engine (Warm Rain, Fireplace, River, Wind)
 const AmbientSoundEngine = (function () {
     let activeType = "off";
     let masterGain = null;
@@ -1005,7 +1009,7 @@ const AmbientSoundEngine = (function () {
             b3 = 0.86650 * b3 + white * 0.3104856;
             b4 = 0.55000 * b4 + white * 0.5329522;
             b5 = -0.7616 * b5 - white * 0.0168980;
-            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.06;
+            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.055;
             b6 = white * 0.115926;
         }
         cachedPink = buf;
@@ -1077,7 +1081,7 @@ const AmbientSoundEngine = (function () {
             const ctx = getAudioContext();
             const now = ctx.currentTime;
             masterGain.gain.cancelScheduledValues(now);
-            masterGain.gain.linearRampToValueAtTime(clamp(vol01, 0, 1) * 0.55, now + 0.15);
+            masterGain.gain.linearRampToValueAtTime(clamp(vol01, 0, 1) * 0.52, now + 0.15);
         } catch (e) {}
     }
 
@@ -1098,49 +1102,72 @@ const AmbientSoundEngine = (function () {
         activeType = type;
         masterGain = ctx.createGain();
         masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        masterGain.gain.linearRampToValueAtTime(clamp(vol01, 0, 1) * 0.55, ctx.currentTime + 0.55);
+        masterGain.gain.linearRampToValueAtTime(clamp(vol01, 0, 1) * 0.52, ctx.currentTime + 0.55);
         masterGain.connect(ctx.destination);
 
         if (type === "rain") {
-            // Steady rain pouring sheet
+            // Soft warm rain bed (low-passed to avoid harsh static hiss)
             const rainSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
-            const bp = ctx.createBiquadFilter();
-            bp.type = "bandpass";
-            bp.frequency.value = 1250;
-            bp.Q.value = 0.55;
-
             const lp = ctx.createBiquadFilter();
             lp.type = "lowpass";
-            lp.frequency.value = 3200;
+            lp.frequency.value = 1350;
+            lp.Q.value = 0.4;
+
+            const hp = ctx.createBiquadFilter();
+            hp.type = "highpass";
+            hp.frequency.value = 260;
 
             const rainGain = ctx.createGain();
-            rainGain.gain.value = 0.95;
+            rainGain.gain.value = 0.72;
 
-            rainSrc.connect(bp);
-            bp.connect(lp);
+            rainSrc.connect(hp);
+            hp.connect(lp);
             lp.connect(rainGain);
             rainGain.connect(masterGain);
             rainSrc.start();
-            activeNodes.push(rainSrc, bp, lp, rainGain);
+            activeNodes.push(rainSrc, hp, lp, rainGain);
 
-            // Soft distant rain rumble
+            // Warm distant rainfall depth
             const lowSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
             const lowFilter = ctx.createBiquadFilter();
             lowFilter.type = "lowpass";
-            lowFilter.frequency.value = 280;
+            lowFilter.frequency.value = 240;
             const lowGain = ctx.createGain();
-            lowGain.gain.value = 0.25;
+            lowGain.gain.value = 0.36;
             lowSrc.connect(lowFilter);
             lowFilter.connect(lowGain);
             lowGain.connect(masterGain);
             lowSrc.start();
             activeNodes.push(lowSrc, lowFilter, lowGain);
+
+            // Subtle randomized soft raindrops
+            function scheduleDrop() {
+                if (activeType !== "rain" || !masterGain) return;
+                try {
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    const baseFreq = 900 + Math.random() * 1400;
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(baseFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, now + 0.035);
+                    g.gain.setValueAtTime(0.0001, now);
+                    g.gain.linearRampToValueAtTime(0.025 + Math.random() * 0.03, now + 0.008);
+                    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+                    osc.connect(g);
+                    g.connect(masterGain);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } catch (e) {}
+                timers.push(setTimeout(scheduleDrop, 90 + Math.random() * 260));
+            }
+            scheduleDrop();
         } else if (type === "fire") {
-            // Warm winter furnace / hearth rumble
+            // Warm winter fireplace / furnace rumble
             const hearthSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
             const lp = ctx.createBiquadFilter();
             lp.type = "lowpass";
-            lp.frequency.value = 170;
+            lp.frequency.value = 165;
             const hearthGain = ctx.createGain();
             hearthGain.gain.value = 0.85;
 
@@ -1150,21 +1177,21 @@ const AmbientSoundEngine = (function () {
             hearthSrc.start();
             activeNodes.push(hearthSrc, lp, hearthGain);
 
-            // Soft flame hiss
+            // Soft flame glow
             const hissSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
             const hissBp = ctx.createBiquadFilter();
             hissBp.type = "bandpass";
-            hissBp.frequency.value = 720;
+            hissBp.frequency.value = 620;
             hissBp.Q.value = 1.2;
             const hissGain = ctx.createGain();
-            hissGain.gain.value = 0.22;
+            hissGain.gain.value = 0.18;
             hissSrc.connect(hissBp);
             hissBp.connect(hissGain);
             hissGain.connect(masterGain);
             hissSrc.start();
             activeNodes.push(hissSrc, hissBp, hissGain);
 
-            // Randomized wood crackles & pops
+            // Randomized wood crackles
             function scheduleCrackle() {
                 if (activeType !== "fire" || !masterGain) return;
                 try {
@@ -1179,73 +1206,75 @@ const AmbientSoundEngine = (function () {
                     src.buffer = burstBuf;
                     const hp = ctx.createBiquadFilter();
                     hp.type = "bandpass";
-                    hp.frequency.value = 1900 + Math.random() * 2400;
+                    hp.frequency.value = 1800 + Math.random() * 2200;
                     hp.Q.value = 1.8;
                     const g = ctx.createGain();
-                    g.gain.value = 0.16 + Math.random() * 0.32;
+                    g.gain.value = 0.15 + Math.random() * 0.28;
                     src.connect(hp);
                     hp.connect(g);
                     g.connect(masterGain);
                     src.start(now);
                 } catch (e) {}
-                timers.push(setTimeout(scheduleCrackle, 140 + Math.random() * 620));
+                timers.push(setTimeout(scheduleCrackle, 150 + Math.random() * 620));
             }
             scheduleCrackle();
         } else if (type === "river") {
-            // Flowing river with gentle LFO current modulation
-            const riverSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
-            const bp = ctx.createBiquadFilter();
-            bp.type = "bandpass";
-            bp.frequency.value = 540;
-            bp.Q.value = 0.85;
+            // Smooth warm brown-noise river body with slow current swell
+            const riverBody = makeLoopSource(ctx, getBrownBuffer(ctx));
+            const lp = ctx.createBiquadFilter();
+            lp.type = "lowpass";
+            lp.frequency.value = 420;
+            lp.Q.value = 0.6;
 
             const lfo = ctx.createOscillator();
             lfo.type = "sine";
-            lfo.frequency.value = 0.16;
+            lfo.frequency.value = 0.14;
             const lfoGain = ctx.createGain();
-            lfoGain.gain.value = 190;
+            lfoGain.gain.value = 110;
             lfo.connect(lfoGain);
-            lfoGain.connect(bp.frequency);
+            lfoGain.connect(lp.frequency);
 
-            const riverGain = ctx.createGain();
-            riverGain.gain.value = 0.9;
+            const bodyGain = ctx.createGain();
+            bodyGain.gain.value = 0.85;
 
-            riverSrc.connect(bp);
-            bp.connect(riverGain);
-            riverGain.connect(masterGain);
-            riverSrc.start();
+            riverBody.connect(lp);
+            lp.connect(bodyGain);
+            bodyGain.connect(masterGain);
+            riverBody.start();
             lfo.start();
-            activeNodes.push(riverSrc, bp, lfo, lfoGain, riverGain);
+            activeNodes.push(riverBody, lp, lfo, lfoGain, bodyGain);
 
-            // Soft brook babble layer
-            const brookSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
-            const brookLp = ctx.createBiquadFilter();
-            brookLp.type = "lowpass";
-            brookLp.frequency.value = 340;
-            const brookGain = ctx.createGain();
-            brookGain.gain.value = 0.45;
-            brookSrc.connect(brookLp);
-            brookLp.connect(brookGain);
-            brookGain.connect(masterGain);
-            brookSrc.start();
-            activeNodes.push(brookSrc, brookLp, brookGain);
+            // Delicate babbling water surface shimmer
+            const shimmer = makeLoopSource(ctx, getPinkBuffer(ctx));
+            const bp = ctx.createBiquadFilter();
+            bp.type = "bandpass";
+            bp.frequency.value = 880;
+            bp.Q.value = 1.6;
+            const shimmerGain = ctx.createGain();
+            shimmerGain.gain.value = 0.18;
+
+            shimmer.connect(bp);
+            bp.connect(shimmerGain);
+            shimmerGain.connect(masterGain);
+            shimmer.start();
+            activeNodes.push(shimmer, bp, shimmerGain);
         } else if (type === "wind") {
             // Layered gusting wind storm
             const wind1 = makeLoopSource(ctx, getPinkBuffer(ctx));
             const bp1 = ctx.createBiquadFilter();
             bp1.type = "bandpass";
-            bp1.frequency.value = 360;
+            bp1.frequency.value = 340;
             bp1.Q.value = 2.4;
 
             const lfo1 = ctx.createOscillator();
             lfo1.frequency.value = 0.09;
             const lfo1G = ctx.createGain();
-            lfo1G.gain.value = 160;
+            lfo1G.gain.value = 150;
             lfo1.connect(lfo1G);
             lfo1G.connect(bp1.frequency);
 
             const g1 = ctx.createGain();
-            g1.gain.value = 0.85;
+            g1.gain.value = 0.82;
             wind1.connect(bp1);
             bp1.connect(g1);
             g1.connect(masterGain);
@@ -1256,18 +1285,18 @@ const AmbientSoundEngine = (function () {
             const wind2 = makeLoopSource(ctx, getPinkBuffer(ctx));
             const bp2 = ctx.createBiquadFilter();
             bp2.type = "bandpass";
-            bp2.frequency.value = 740;
+            bp2.frequency.value = 680;
             bp2.Q.value = 3.2;
 
             const lfo2 = ctx.createOscillator();
             lfo2.frequency.value = 0.13;
             const lfo2G = ctx.createGain();
-            lfo2G.gain.value = 220;
+            lfo2G.gain.value = 200;
             lfo2.connect(lfo2G);
             lfo2G.connect(bp2.frequency);
 
             const g2 = ctx.createGain();
-            g2.gain.value = 0.38;
+            g2.gain.value = 0.32;
             wind2.connect(bp2);
             bp2.connect(g2);
             g2.connect(masterGain);
@@ -1327,6 +1356,353 @@ function getTodayStats() {
 }
 
 // ==========================================
+// CELESTIAL GOLDEN-WHITE RING & STARDUST ENGINE
+// ==========================================
+function createCelestialRingEngine(canvas) {
+    if (!canvas) {
+        return { setRunning() {}, reset() {}, redraw() {} };
+    }
+
+    const ctx = canvas.getContext("2d");
+    const DARK_THEMES = new Set([
+        "midnight-pine", "deep-ocean", "twilight-plum", "amber-dusk", "nordic-slate"
+    ]);
+
+    const TOP = -Math.PI / 2;
+    const TAU = Math.PI * 2;
+
+    // 11-second rhythm: clockwise draw -> brief peak glow -> feathered dissolve + stardust -> quiet beat
+    const DRAW_END = 3.3;
+    const HOLD_END = 4.2;
+    const DISSOLVE_END = 9.5;
+    const CYCLE_DURATION = 11.0;
+
+    let isRunning = false;
+    let cycleTime = 0;
+    let rafId = null;
+    let lastTs = 0;
+    let spawnCarry = 0;
+    let particles = [];
+
+    let cssW = 380;
+    let cssH = 380;
+    let cx = 190;
+    let cy = 190;
+    let radius = 118;
+
+    function isDarkTheme() {
+        const t = document.documentElement.getAttribute("data-theme") || "sage-mist";
+        return DARK_THEMES.has(t);
+    }
+
+    function easeInOutCubic(x) {
+        const t = clamp(x, 0, 1);
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function easeInOutSine(x) {
+        const t = clamp(x, 0, 1);
+        return -(Math.cos(Math.PI * t) - 1) / 2;
+    }
+
+    function resize() {
+        const wrapper = canvas.parentElement;
+        const rect = wrapper ? wrapper.getBoundingClientRect() : { width: 268, height: 268 };
+        const base = Math.max(180, Math.min(rect.width || 268, rect.height || 268));
+        const pad = 56;
+        cssW = base + pad * 2;
+        cssH = base + pad * 2;
+        cx = cssW / 2;
+        cy = cssH / 2;
+        radius = base * 0.435;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(cssW * dpr);
+        canvas.height = Math.round(cssH * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawFrame();
+    }
+
+    function getPalette() {
+        if (isDarkTheme()) {
+            return {
+                dark: true,
+                idleTrack: "rgba(255, 226, 160, 0.18)",
+                idleRim: "rgba(255, 198, 92, 0.34)",
+                outerGlow: "rgba(255, 174, 52, 0.44)",
+                midGlow: "rgba(255, 214, 122, 0.88)",
+                core: "#fffcf2",
+                shadowOuter: "rgba(255, 176, 54, 0.72)",
+                shadowMid: "rgba(255, 224, 148, 0.85)",
+                dustHalo: [255, 194, 84],
+                dustCore: [255, 251, 236]
+            };
+        }
+        // Light themes: warm burnished amber outer bloom framing a luminous golden-white core
+        return {
+            dark: false,
+            idleTrack: "rgba(186, 128, 34, 0.24)",
+            idleRim: "rgba(196, 134, 30, 0.44)",
+            outerGlow: "rgba(186, 114, 16, 0.46)",
+            midGlow: "rgba(232, 166, 48, 0.92)",
+            core: "#fffdf6",
+            shadowOuter: "rgba(176, 104, 12, 0.52)",
+            shadowMid: "rgba(222, 152, 34, 0.68)",
+            dustHalo: [194, 120, 18],
+            dustCore: [255, 249, 224]
+        };
+    }
+
+    function spawnStardust(tipAngle, remainingArc, dt) {
+        const isMobile = window.innerWidth < 640;
+        const maxParticles = isMobile ? 95 : 165;
+        const rate = isMobile ? 34 : 58;
+        spawnCarry += rate * dt;
+
+        while (spawnCarry >= 1) {
+            spawnCarry -= 1;
+            if (particles.length >= maxParticles) {
+                particles.shift();
+            }
+
+            const spreadAngle = tipAngle + (Math.random() - 0.15) * Math.min(remainingArc, 0.34);
+            const radialJitter = (Math.random() - 0.5) * 11;
+            const px = cx + Math.cos(spreadAngle) * (radius + radialJitter);
+            const py = cy + Math.sin(spreadAngle) * (radius + radialJitter);
+
+            const inwardX = (cx - px) * (0.04 + Math.random() * 0.08);
+            const vx = inwardX + (Math.random() - 0.5) * 22;
+            const vy = 10 + Math.random() * 26;
+            const isSpark = Math.random() < 0.26;
+
+            particles.push({
+                x: px,
+                y: py,
+                vx,
+                vy,
+                size: isSpark ? (2.1 + Math.random() * 1.4) : (0.9 + Math.random() * 1.3),
+                age: 0,
+                life: 2.3 + Math.random() * 2.5,
+                swayAmp: 6 + Math.random() * 10,
+                swayFreq: 1.2 + Math.random() * 1.8,
+                phase: Math.random() * TAU
+            });
+        }
+    }
+
+    function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.age += dt;
+            if (p.age >= p.life) {
+                particles.splice(i, 1);
+                continue;
+            }
+            p.x += (p.vx + Math.sin(p.age * p.swayFreq + p.phase) * p.swayAmp) * dt;
+            p.y += p.vy * dt;
+            p.vx *= Math.pow(0.86, dt);
+            p.vy *= Math.pow(0.95, dt);
+        }
+    }
+
+    function drawParticles(pal) {
+        const [hr, hg, hb] = pal.dustHalo;
+        const [cr, cg, cb] = pal.dustCore;
+
+        ctx.save();
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            const progress = p.age / p.life;
+            const fadeIn = Math.min(1, p.age / 0.16);
+            const fadeOut = Math.pow(1 - progress, 1.55);
+            const twinkle = 0.68 + 0.32 * Math.sin(p.age * 7.5 + p.phase);
+            const alpha = fadeIn * fadeOut * twinkle;
+            if (alpha <= 0.01) continue;
+
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(${hr}, ${hg}, ${hb}, ${(alpha * (pal.dark ? 0.36 : 0.48)).toFixed(3)})`;
+            ctx.arc(p.x, p.y, p.size * (pal.dark ? 2.8 : 2.5), 0, TAU);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${(alpha * 0.96).toFixed(3)})`;
+            ctx.arc(p.x, p.y, p.size, 0, TAU);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function strokeLuminousArc(startA, endA, pal, alphaScale, widthScale, capStyle) {
+        if (endA - startA <= 0.002 || alphaScale <= 0.01) return;
+        const cap = capStyle || "round";
+        const baseW = 9.5 * (widthScale || 1);
+
+        ctx.save();
+        ctx.globalAlpha = alphaScale;
+        ctx.lineCap = cap;
+
+        // Pass 1: Wide warm golden outer bloom
+        ctx.strokeStyle = pal.outerGlow;
+        ctx.lineWidth = baseW * 1.75;
+        ctx.shadowColor = pal.shadowOuter;
+        ctx.shadowBlur = pal.dark ? 24 : 18;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startA, endA, false);
+        ctx.stroke();
+
+        // Pass 2: Rich golden mid-halo
+        ctx.strokeStyle = pal.midGlow;
+        ctx.lineWidth = baseW * 1.08;
+        ctx.shadowColor = pal.shadowMid;
+        ctx.shadowBlur = pal.dark ? 12 : 9;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startA, endA, false);
+        ctx.stroke();
+
+        // Pass 3: Luminous golden-white core
+        ctx.strokeStyle = pal.core;
+        ctx.lineWidth = baseW * 0.56;
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startA, endA, false);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawFeatheredDissolve(startA, endA, pal) {
+        const rem = endA - startA;
+        if (rem <= 0.005) return;
+
+        const featherSpan = Math.min(rem, 0.56);
+        const steps = 14;
+        const stepAngle = featherSpan / steps;
+
+        for (let i = 0; i < steps; i++) {
+            const frac = (i + 1) / steps;
+            const segStart = startA + i * stepAngle;
+            const segEnd = segStart + stepAngle + 0.018;
+            const segAlpha = frac * frac;
+            const segWidth = 0.62 + 0.38 * frac;
+            strokeLuminousArc(segStart, Math.min(endA, segEnd), pal, segAlpha, segWidth, "butt");
+        }
+
+        if (rem > featherSpan) {
+            strokeLuminousArc(startA + featherSpan - 0.02, endA, pal, 1, 1, "round");
+        }
+    }
+
+    function drawIdleRing(pal) {
+        ctx.save();
+        ctx.strokeStyle = pal.idleTrack;
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.stroke();
+
+        ctx.strokeStyle = pal.idleRim;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawFrame() {
+        ctx.clearRect(0, 0, cssW, cssH);
+        const pal = getPalette();
+
+        drawIdleRing(pal);
+
+        if (isRunning || cycleTime > 0) {
+            if (cycleTime < DRAW_END) {
+                const p = easeInOutCubic(cycleTime / DRAW_END);
+                if (p > 0.004) {
+                    strokeLuminousArc(TOP, TOP + p * TAU, pal, 1, 1, "round");
+                }
+            } else if (cycleTime < HOLD_END) {
+                const holdP = (cycleTime - DRAW_END) / (HOLD_END - DRAW_END);
+                const pulse = 1 + 0.08 * Math.sin(holdP * Math.PI);
+                strokeLuminousArc(TOP, TOP + TAU, pal, 1, pulse, "round");
+            } else if (cycleTime < DISSOLVE_END) {
+                const d = easeInOutSine((cycleTime - HOLD_END) / (DISSOLVE_END - HOLD_END));
+                const startA = TOP + d * TAU;
+                const endA = TOP + TAU;
+                drawFeatheredDissolve(startA, endA, pal);
+            }
+        }
+
+        if (particles.length > 0) {
+            drawParticles(pal);
+        }
+    }
+
+    function loop(ts) {
+        if (!lastTs) lastTs = ts;
+        const dt = Math.min(0.05, Math.max(0.001, (ts - lastTs) / 1000));
+        lastTs = ts;
+
+        if (isRunning) {
+            cycleTime = (cycleTime + dt) % CYCLE_DURATION;
+
+            if (cycleTime >= HOLD_END && cycleTime < DISSOLVE_END) {
+                const d = easeInOutSine((cycleTime - HOLD_END) / (DISSOLVE_END - HOLD_END));
+                const startA = TOP + d * TAU;
+                const remainingArc = Math.max(0, (1 - d) * TAU);
+                if (remainingArc > 0.02) {
+                    spawnStardust(startA, remainingArc, dt);
+                }
+            }
+        }
+
+        updateParticles(dt);
+        drawFrame();
+
+        if (isRunning || particles.length > 0) {
+            rafId = requestAnimationFrame(loop);
+        } else {
+            rafId = null;
+            lastTs = 0;
+        }
+    }
+
+    function ensureLoop() {
+        if (!rafId) {
+            lastTs = 0;
+            rafId = requestAnimationFrame(loop);
+        }
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    return {
+        setRunning(running) {
+            isRunning = Boolean(running);
+            if (isRunning || particles.length > 0) {
+                ensureLoop();
+            } else {
+                drawFrame();
+            }
+        },
+        reset() {
+            isRunning = false;
+            cycleTime = 0;
+            spawnCarry = 0;
+            particles = [];
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            lastTs = 0;
+            drawFrame();
+        },
+        redraw() {
+            drawFrame();
+        }
+    };
+}
+
+// ==========================================
 // PAGE 1: FOCUS TIMER (index.html)
 // ==========================================
 const timerDisplay = document.getElementById("timer-display");
@@ -1335,8 +1711,8 @@ if (timerDisplay) {
     const timerCardEl = document.getElementById("timer-card");
     const modeSwitcherEl = document.getElementById("mode-switcher-unified");
     const modeLockNoteEl = document.getElementById("mode-lock-note");
-    const ringEl = document.getElementById("ring-progress");
-    const waterLevelEl = document.getElementById("water-level");
+    const labelPickerEl = document.getElementById("label-picker");
+    const celestialCanvas = document.getElementById("celestial-ring-canvas");
     const statusEl = document.getElementById("timer-status");
     const startPauseBtn = document.getElementById("btn-start-pause");
     const resetBtn = document.getElementById("btn-reset");
@@ -1354,11 +1730,14 @@ if (timerDisplay) {
     const ambientPills = document.querySelectorAll(".ambient-pill");
     const ambientVolSlider = document.getElementById("ambient-volume");
 
-    const CIRCUMFERENCE = 2 * Math.PI * 118;
+    const celestialRing = createCelestialRingEngine(celestialCanvas);
+    window.redrawCelestialRing = () => celestialRing.redraw();
+
     let tickInterval = null;
 
     let selectedAmbient = localStorage.getItem("ff_ambient_sound") || "off";
-    let ambientVol = clamp(parseInt(localStorage.getItem("ff_ambient_vol"), 10) || 45, 0, 100);
+    const savedAmbVol = parseInt(localStorage.getItem("ff_ambient_vol"), 10);
+    let ambientVol = isNaN(savedAmbVol) ? 45 : clamp(savedAmbVol, 0, 100);
     if (ambientVolSlider) ambientVolSlider.value = ambientVol;
 
     function getModeSeconds(mode) {
@@ -1412,7 +1791,6 @@ if (timerDisplay) {
             } else if (timerState.isRunning && timerState.mode === "focus") {
                 AmbientSoundEngine.start(selectedAmbient, ambientVol / 100, false);
             } else {
-                // Play a brief 2.5s preview when idle so the user can audition the sound
                 AmbientSoundEngine.start(selectedAmbient, ambientVol / 100, true);
             }
         });
@@ -1426,31 +1804,6 @@ if (timerDisplay) {
         });
     }
 
-    function renderLabelPills() {
-        if (!pillGroupEl) return;
-        if (!sessionLabels.includes(timerState.label)) {
-            timerState.label = sessionLabels[0] || "Study";
-            saveJSON("ff_timer_state", timerState);
-        }
-        pillGroupEl.innerHTML = "";
-        sessionLabels.forEach((lbl) => {
-            const color = getLabelColor(lbl);
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "label-pill" + (lbl === timerState.label ? " active" : "");
-            btn.style.setProperty("--pill-color", color);
-            btn.style.setProperty("--pill-text", getContrastTextColor(color));
-            btn.innerHTML = `<span class="label-pill-dot" style="background: ${color};"></span><span>${escapeHTML(lbl)}</span>`;
-            btn.addEventListener("click", () => {
-                timerState.label = lbl;
-                saveJSON("ff_timer_state", timerState);
-                renderLabelPills();
-                renderTimerUI();
-            });
-            pillGroupEl.appendChild(btn);
-        });
-    }
-
     const labelModal = document.getElementById("label-modal");
     const openLabelModalBtn = document.getElementById("btn-manage-labels");
     const closeLabelModalX = document.getElementById("btn-close-label-x");
@@ -1460,6 +1813,34 @@ if (timerDisplay) {
     const labelManagerList = document.getElementById("label-manager-list");
     const labelModalMsg = document.getElementById("label-modal-msg");
     let editingLabelIndex = -1;
+
+    function renderLabelPills() {
+        if (!pillGroupEl) return;
+        if (!sessionLabels.includes(timerState.label)) {
+            timerState.label = sessionLabels[0] || "Study";
+            saveJSON("ff_timer_state", timerState);
+        }
+        const locked = Boolean(timerState.isLocked);
+        pillGroupEl.innerHTML = "";
+        sessionLabels.forEach((lbl) => {
+            const color = getLabelColor(lbl);
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "label-pill" + (lbl === timerState.label ? " active" : "");
+            btn.disabled = locked;
+            btn.style.setProperty("--pill-color", color);
+            btn.style.setProperty("--pill-text", getContrastTextColor(color));
+            btn.innerHTML = `<span class="label-pill-dot" style="background: ${color};"></span><span>${escapeHTML(lbl)}</span>`;
+            btn.addEventListener("click", () => {
+                if (timerState.isLocked) return;
+                timerState.label = lbl;
+                saveJSON("ff_timer_state", timerState);
+                renderLabelPills();
+                renderTimerUI();
+            });
+            pillGroupEl.appendChild(btn);
+        });
+    }
 
     function showLabelMsg(msg) {
         if (!labelModalMsg) return;
@@ -1609,6 +1990,7 @@ if (timerDisplay) {
         }
         if (openLabelModalBtn) {
             openLabelModalBtn.addEventListener("click", () => {
+                if (timerState.isLocked) return;
                 editingLabelIndex = -1;
                 if (newLabelColorInput) {
                     newLabelColorInput.value = FALLBACK_HEX_COLORS[sessionLabels.length % FALLBACK_HEX_COLORS.length];
@@ -1706,27 +2088,15 @@ if (timerDisplay) {
     }
 
     function renderTimerUI() {
-        const totalSecs = getModeSeconds(timerState.mode);
         const rem = Math.max(0, timerState.remainingSeconds);
         const formatted = `${String(Math.floor(rem / 60)).padStart(2, "0")}:${String(rem % 60).padStart(2, "0")}`;
 
         timerDisplay.textContent = formatted;
         document.title = `${formatted} - FocusFlow`;
 
-        const ratioRemaining = totalSecs > 0 ? clamp(rem / totalSecs, 0, 1) : 0;
-        const ratioElapsed = 1 - ratioRemaining;
-        ringEl.style.strokeDashoffset = CIRCUMFERENCE * ratioElapsed;
-
-        // Crystalline Water Level: Focus rises (0% -> 100%), Breaks drain (100% -> 0%)
         const isFocus = timerState.mode === "focus";
-        if (waterLevelEl) {
-            const waterPct = isFocus ? ratioElapsed * 100 : ratioRemaining * 100;
-            waterLevelEl.style.height = `${waterPct.toFixed(2)}%`;
-            waterLevelEl.classList.toggle("empty-water", waterPct <= 0.4);
-        }
-
-        // Strict Mode Lock while a session is started (until Reset or Finish)
         const locked = Boolean(timerState.isLocked);
+
         if (modeSwitcherEl) modeSwitcherEl.classList.toggle("mode-locked", locked);
         if (modeLockNoteEl) modeLockNoteEl.classList.toggle("hidden", !locked);
         if (focusModeBtn) {
@@ -1741,6 +2111,14 @@ if (timerDisplay) {
             opt.classList.toggle("active-choice", opt.getAttribute("data-break") === timerState.preferredBreak);
             opt.disabled = locked;
         });
+
+        if (labelPickerEl) labelPickerEl.classList.toggle("labels-locked", locked);
+        if (openLabelModalBtn) openLabelModalBtn.disabled = locked;
+        if (pillGroupEl) {
+            pillGroupEl.querySelectorAll(".label-pill").forEach((pill) => {
+                pill.disabled = locked;
+            });
+        }
 
         startPauseBtn.textContent = timerState.isRunning ? "PAUSE" : "START";
         statusEl.textContent = timerState.isRunning
@@ -1758,6 +2136,7 @@ if (timerDisplay) {
         timerState.isLocked = false;
         timerState.endTime = null;
 
+        celestialRing.reset();
         AmbientSoundEngine.stop(false);
         playChime();
         showRandomQuote();
@@ -1809,6 +2188,7 @@ if (timerDisplay) {
         timerState.endTime = Date.now() + timerState.remainingSeconds * 1000;
         saveJSON("ff_timer_state", timerState);
         renderTimerUI();
+        celestialRing.setRunning(true);
         syncAmbientPlayback();
         tickInterval = setInterval(tick, 250);
     }
@@ -1823,12 +2203,14 @@ if (timerDisplay) {
         timerState.endTime = null;
         saveJSON("ff_timer_state", timerState);
         renderTimerUI();
+        celestialRing.setRunning(false);
         syncAmbientPlayback();
     }
 
     function switchMode(newMode, forceUnlock) {
         if (timerState.isLocked && !forceUnlock) return;
         pauseTimer();
+        celestialRing.reset();
         timerState.isLocked = false;
         timerState.mode = newMode;
         if (newMode === "short" || newMode === "long") {
@@ -1892,6 +2274,7 @@ if (timerDisplay) {
                 timerState.remainingSeconds = left;
                 timerState.isLocked = true;
                 renderTimerUI();
+                celestialRing.setRunning(true);
                 tickInterval = setInterval(tick, 250);
                 syncLogsFromCloud().then(updateTodayWidgets);
             }
