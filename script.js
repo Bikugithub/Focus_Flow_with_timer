@@ -79,6 +79,7 @@ let settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON("ff_settings", {}));
 let historyLog = loadJSON("ff_history", []);
 if (!Array.isArray(historyLog)) historyLog = [];
 let currentUser = null;
+
 // ==========================================
 // 10-THEME FLOATING PALETTE POPOVER ENGINE
 // ==========================================
@@ -104,7 +105,6 @@ function applyTheme(theme) {
 function setupThemePalettePopover() {
     if (!themeBtn) return;
 
-    // Replace sun/moon text with a clean palette SVG icon
     themeBtn.title = "Choose Theme";
     themeBtn.setAttribute("aria-label", "Choose Theme");
     themeBtn.setAttribute("aria-expanded", "false");
@@ -146,7 +146,6 @@ function setupThemePalettePopover() {
         let desiredLeft = btnRect.left - containerRect.left;
         const screenLeft = containerRect.left + desiredLeft;
 
-        // Keep popover cleanly inside viewport on both mobile and desktop
         if (screenLeft + popW > window.innerWidth - margin) {
             desiredLeft = (window.innerWidth - margin - popW) - containerRect.left;
         }
@@ -203,7 +202,6 @@ function setupThemePalettePopover() {
 setupThemePalettePopover();
 applyTheme(currentTheme);
 
-// Bind any Settings-page theme cards too
 document.querySelectorAll(".theme-card").forEach((card) => {
     card.addEventListener("click", () => {
         applyTheme(card.getAttribute("data-theme-pick"));
@@ -469,7 +467,6 @@ if (feedbackModal) {
 }
 
 bindFeedbackForm("settings-feedback-form", "settings-fb-text", "settings-fb-status", "settings");
-
 
 // ==========================================
 // QUICK GUIDE MODAL (OPENS ON FIRST VISIT)
@@ -840,7 +837,6 @@ if (timerDisplay) {
     });
 }
 
-
 // ==========================================
 // PAGE 2: TIME HISTORY (history.html)
 // ==========================================
@@ -1113,4 +1109,4 @@ if (settingsForm) {
 
     notifyBtn.addEventListener("click", () => requestDesktopNotifications(updateNotifyStatus));
     updateNotifyStatus();
-                 }
+}
