@@ -9,7 +9,7 @@ const db = (window.supabase && SUPABASE_KEY !== "PASTE_YOUR_PUBLISHABLE_KEY_HERE
     : null;
 
 // ==========================================
-// DEFAULTS, THEMES, LABELS & STORAGE HELPERS
+// DEFAULTS, THEMES, LABELS, COLORS & HELPERS
 // ==========================================
 const DEFAULT_SETTINGS = {
     focus: 25,
@@ -22,6 +22,18 @@ const DEFAULT_SETTINGS = {
 
 const DEFAULT_LABELS = ["Study", "Coding", "Reading", "Work", "General"];
 
+const DEFAULT_LABEL_COLORS = {
+    "Study": "#65a7d6",
+    "Coding": "#58b09c",
+    "Reading": "#e7b564",
+    "Work": "#dd7d9d",
+    "General": "#9b84d9"
+};
+
+const FALLBACK_HEX_COLORS = [
+    "#65a7d6", "#58b09c", "#e7b564", "#dd7d9d", "#9b84d9", "#e09266", "#83bd6a"
+];
+
 const THEME_PALETTE = [
     { id: "sage-mist",      name: "Sage Mist",      gradient: "linear-gradient(135deg, #d7f2e8, #4c8f78)" },
     { id: "midnight-pine",  name: "Midnight Pine",  gradient: "linear-gradient(135deg, #162923, #72bda5)" },
@@ -33,17 +45,6 @@ const THEME_PALETTE = [
     { id: "amber-dusk",     name: "Amber Dusk",     gradient: "linear-gradient(135deg, #291e16, #dfa066)" },
     { id: "rose-quartz",    name: "Rose Quartz",    gradient: "linear-gradient(135deg, #fae0e8, #bd6582)" },
     { id: "nordic-slate",   name: "Nordic Slate",   gradient: "linear-gradient(135deg, #161d26, #7ea8c7)" }
-];
-
-// Soft painterly Studio Ghibli pastel palettes for Date-Wise stacked bars
-const GHIBLI_PALETTES = [
-    "linear-gradient(135deg, #8fd6c0 0%, #58b09c 100%)", // Totoro Forest Teal
-    "linear-gradient(135deg, #f7d996 0%, #e7b564 100%)", // Spirited Bathhouse Gold
-    "linear-gradient(135deg, #f3a6bd 0%, #dd7d9d 100%)", // Sakura Blossom Pink
-    "linear-gradient(135deg, #9ad0ec 0%, #65a7d6 100%)", // Laputa Sky Blue
-    "linear-gradient(135deg, #c6b4f0 0%, #9b84d9 100%)", // Twilight Wisteria
-    "linear-gradient(135deg, #f6be9a 0%, #e09266 100%)", // Kiki Sunset Peach
-    "linear-gradient(135deg, #b8df98 0%, #83bd6a 100%)"  // Meadow Sage
 ];
 
 const MOTIVATIONAL_QUOTES = [
@@ -93,14 +94,58 @@ function parseDateKey(key) {
     return new Date(parts[0], parts[1] - 1, parts[2]);
 }
 
+function hexToRgb(hex) {
+    const clean = String(hex || "#65a7d6").replace("#", "").trim();
+    const full = clean.length === 3
+        ? clean.split("").map((c) => c + c).join("")
+        : clean.padEnd(6, "0").slice(0, 6);
+    const num = parseInt(full, 16);
+    if (isNaN(num)) return { r: 101, g: 167, b: 214 };
+    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+function adjustHex(hex, amount) {
+    const { r, g, b } = hexToRgb(hex);
+    const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+    const rr = clamp(r + amount).toString(16).padStart(2, "0");
+    const gg = clamp(g + amount).toString(16).padStart(2, "0");
+    const bb = clamp(b + amount).toString(16).padStart(2, "0");
+    return `#${rr}${gg}${bb}`;
+}
+
+function getContrastTextColor(hex) {
+    const { r, g, b } = hexToRgb(hex);
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return lum > 0.62 ? "#15201d" : "#ffffff";
+}
+
+function makeGhibliGradient(hex) {
+    const light = adjustHex(hex, 34);
+    const deep = adjustHex(hex, -14);
+    return `linear-gradient(135deg, ${light} 0%, ${hex} 55%, ${deep} 100%)`;
+}
+
 let settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON("ff_settings", {}));
 let historyLog = loadJSON("ff_history", []);
 if (!Array.isArray(historyLog)) historyLog = [];
+
 let sessionLabels = loadJSON("ff_custom_labels", null);
 if (!Array.isArray(sessionLabels) || sessionLabels.length === 0) {
     sessionLabels = DEFAULT_LABELS.slice();
     saveJSON("ff_custom_labels", sessionLabels);
 }
+
+let labelColors = Object.assign({}, DEFAULT_LABEL_COLORS, loadJSON("ff_label_colors", {}));
+saveJSON("ff_label_colors", labelColors);
+
+function getLabelColor(labelName) {
+    const key = labelName || "General";
+    if (labelColors[key]) return labelColors[key];
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+    return FALLBACK_HEX_COLORS[Math.abs(hash) % FALLBACK_HEX_COLORS.length];
+}
+
 let currentUser = null;
 
 // ==========================================
@@ -212,9 +257,7 @@ function setupThemePalettePopover() {
     });
 
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !popover.classList.contains("hidden")) {
-            closePopover();
-        }
+        if (e.key === "Escape" && !popover.classList.contains("hidden")) closePopover();
     });
 
     window.addEventListener("resize", () => {
@@ -538,9 +581,7 @@ function playTone(ctx, freq, startOffset, duration, volume, type, endFreq) {
 
     osc.type = type || "sine";
     osc.frequency.setValueAtTime(freq, now);
-    if (endFreq) {
-        osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
-    }
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
 
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(volume, now + Math.min(0.04, duration * 0.2));
@@ -668,15 +709,18 @@ if (timerDisplay) {
         timerState.label = sessionLabels[0] || "Study";
     }
 
-    // Dynamic Session Label Pills
+    // Dynamic Color-Coded Session Label Pills
     function renderLabelPills() {
         if (!pillGroupEl) return;
         pillGroupEl.innerHTML = "";
         sessionLabels.forEach((lbl) => {
+            const color = getLabelColor(lbl);
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "label-pill" + (lbl === timerState.label ? " active" : "");
-            btn.textContent = lbl;
+            btn.style.setProperty("--pill-color", color);
+            btn.style.setProperty("--pill-text", getContrastTextColor(color));
+            btn.innerHTML = `<span class="label-pill-dot" style="background: ${color};"></span><span>${escapeHTML(lbl)}</span>`;
             btn.addEventListener("click", () => {
                 timerState.label = lbl;
                 saveJSON("ff_timer_state", timerState);
@@ -687,12 +731,13 @@ if (timerDisplay) {
         });
     }
 
-    // Manage Session Labels Modal (Add / Edit / Delete for future sessions only)
+    // Manage Session Labels Modal (Add / Edit / Color Picker / Delete)
     const labelModal = document.getElementById("label-modal");
     const openLabelModalBtn = document.getElementById("btn-manage-labels");
     const closeLabelModalX = document.getElementById("btn-close-label-x");
     const addLabelForm = document.getElementById("add-label-form");
     const newLabelInput = document.getElementById("new-label-input");
+    const newLabelColorInput = document.getElementById("new-label-color");
     const labelManagerList = document.getElementById("label-manager-list");
     const labelModalMsg = document.getElementById("label-modal-msg");
     let editingLabelIndex = -1;
@@ -708,15 +753,28 @@ if (timerDisplay) {
         labelManagerList.innerHTML = "";
 
         sessionLabels.forEach((lbl, idx) => {
+            const currentColor = getLabelColor(lbl);
             const row = document.createElement("div");
             row.className = "label-manager-item";
 
             if (editingLabelIndex === idx) {
+                const editWrap = document.createElement("div");
+                editWrap.className = "label-edit-wrap";
+
                 const inp = document.createElement("input");
                 inp.type = "text";
                 inp.className = "label-edit-input";
                 inp.value = lbl;
                 inp.maxLength = 24;
+
+                const colorInp = document.createElement("input");
+                colorInp.type = "color";
+                colorInp.className = "label-color-circle";
+                colorInp.value = currentColor;
+                colorInp.title = "Pick label color";
+
+                editWrap.appendChild(inp);
+                editWrap.appendChild(colorInp);
 
                 const actions = document.createElement("div");
                 actions.className = "label-manager-actions";
@@ -733,7 +791,9 @@ if (timerDisplay) {
 
                     const oldName = sessionLabels[idx];
                     sessionLabels[idx] = updated;
+                    labelColors[updated] = colorInp.value;
                     saveJSON("ff_custom_labels", sessionLabels);
+                    saveJSON("ff_label_colors", labelColors);
 
                     if (timerState.label === oldName) {
                         timerState.label = updated;
@@ -743,7 +803,7 @@ if (timerDisplay) {
                     renderLabelPills();
                     renderLabelManager();
                     renderTimerUI();
-                    showLabelMsg("Label updated for future sessions.");
+                    showLabelMsg("Label & color updated for future sessions.");
                 });
 
                 const cancelBtn = document.createElement("button");
@@ -757,13 +817,25 @@ if (timerDisplay) {
 
                 actions.appendChild(saveBtn);
                 actions.appendChild(cancelBtn);
-                row.appendChild(inp);
+                row.appendChild(editWrap);
                 row.appendChild(actions);
                 setTimeout(() => inp.focus(), 20);
             } else {
                 const nameSpan = document.createElement("span");
                 nameSpan.className = "label-manager-name";
                 nameSpan.textContent = lbl;
+
+                const colorInp = document.createElement("input");
+                colorInp.type = "color";
+                colorInp.className = "label-color-circle";
+                colorInp.value = currentColor;
+                colorInp.title = `Change color for ${lbl}`;
+                colorInp.addEventListener("input", () => {
+                    labelColors[lbl] = colorInp.value;
+                    saveJSON("ff_label_colors", labelColors);
+                    renderLabelPills();
+                    updateTodayWidgets();
+                });
 
                 const actions = document.createElement("div");
                 actions.className = "label-manager-actions";
@@ -801,6 +873,7 @@ if (timerDisplay) {
                 actions.appendChild(editBtn);
                 actions.appendChild(delBtn);
                 row.appendChild(nameSpan);
+                row.appendChild(colorInp);
                 row.appendChild(actions);
             }
             labelManagerList.appendChild(row);
@@ -815,6 +888,9 @@ if (timerDisplay) {
         if (openLabelModalBtn) {
             openLabelModalBtn.addEventListener("click", () => {
                 editingLabelIndex = -1;
+                if (newLabelColorInput) {
+                    newLabelColorInput.value = FALLBACK_HEX_COLORS[sessionLabels.length % FALLBACK_HEX_COLORS.length];
+                }
                 renderLabelManager();
                 labelModal.classList.remove("hidden");
             });
@@ -834,11 +910,17 @@ if (timerDisplay) {
                     showLabelMsg("That label already exists.");
                     return;
                 }
+                const pickedColor = newLabelColorInput ? newLabelColorInput.value : getLabelColor(name);
                 sessionLabels.push(name);
+                labelColors[name] = pickedColor;
                 saveJSON("ff_custom_labels", sessionLabels);
+                saveJSON("ff_label_colors", labelColors);
                 timerState.label = name;
                 saveJSON("ff_timer_state", timerState);
                 newLabelInput.value = "";
+                if (newLabelColorInput) {
+                    newLabelColorInput.value = FALLBACK_HEX_COLORS[sessionLabels.length % FALLBACK_HEX_COLORS.length];
+                }
                 renderLabelPills();
                 renderLabelManager();
                 renderTimerUI();
@@ -878,13 +960,16 @@ if (timerDisplay) {
                 miniLog.innerHTML = `<p class="muted-text">No sessions saved yet.</p>`;
             } else {
                 historyLog.slice(0, 3).forEach((item) => {
+                    const lbl = item.label || "General";
+                    const chipBg = getLabelColor(lbl);
+                    const chipText = getContrastTextColor(chipBg);
                     const row = document.createElement("div");
                     row.className = "log-item";
                     row.style.padding = "10px 12px";
                     row.innerHTML = `
                         <div class="log-main">
                             <div class="log-top-line">
-                                <span class="label-chip">${escapeHTML(item.label || "General")}</span>
+                                <span class="label-chip" style="background:${chipBg};color:${chipText};">${escapeHTML(lbl)}</span>
                                 <span class="log-task">${escapeHTML(item.task)}</span>
                             </div>
                             <span class="log-meta">${escapeHTML(item.date)} • ${escapeHTML(item.time)}</span>
@@ -1077,12 +1162,15 @@ if (fullHistoryList) {
         }
 
         filtered.forEach((item) => {
+            const lbl = item.label || "General";
+            const chipBg = getLabelColor(lbl);
+            const chipText = getContrastTextColor(chipBg);
             const row = document.createElement("div");
             row.className = "log-item";
             row.innerHTML = `
                 <div class="log-main">
                     <div class="log-top-line">
-                        <span class="label-chip">${escapeHTML(item.label || "General")}</span>
+                        <span class="label-chip" style="background:${chipBg};color:${chipText};">${escapeHTML(lbl)}</span>
                         <span class="log-task">${escapeHTML(item.task)}</span>
                     </div>
                     <span class="log-meta">${escapeHTML(item.date)} • Completed at ${escapeHTML(item.time)}</span>
@@ -1200,7 +1288,7 @@ function drawAnalyticsChart() {
     });
 }
 
-// Date-Wise Analysis Engine (This Week Only Roller + Past Calendar + Ghibli Stacked Bar)
+// Date-Wise Analysis Engine (3-Column Desktop + Single-Fill Fix + Dynamic Session Color Border)
 let refreshDateWiseAnalysis = null;
 
 function initDateWiseAnalysis() {
@@ -1222,10 +1310,10 @@ function initDateWiseAnalysis() {
     const rollerUpBtn = document.getElementById("roller-up");
     const rollerDownBtn = document.getElementById("roller-down");
 
+    const barFrameEl = document.getElementById("ghibli-bar-frame");
     const stackedBarEl = document.getElementById("dwa-stacked-bar");
     const legendEl = document.getElementById("dwa-legend");
 
-    // Build current week strictly Sunday (0) through Saturday (6)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayKey = getLocalDateKey(today);
@@ -1241,16 +1329,41 @@ function initDateWiseAnalysis() {
     }
 
     let selectedDateKey = todayKey;
-    let weekIndex = today.getDay(); // 0 = Sun ... 6 = Sat
+    let weekIndex = today.getDay();
     let calViewYear = today.getFullYear();
     let calViewMonth = today.getMonth();
+    let lastBarSignature = "";
 
-    function getGhibliColor(labelName, index) {
-        let hash = 0;
-        for (let i = 0; i < labelName.length; i++) {
-            hash = (hash * 31 + labelName.charCodeAt(i)) | 0;
+    function applyDynamicBorderColors(colors) {
+        if (!barFrameEl) return;
+        if (!colors || colors.length === 0) {
+            barFrameEl.style.removeProperty("--bar-border-grad");
+            barFrameEl.style.removeProperty("--bar-glow-color");
+            return;
         }
-        return GHIBLI_PALETTES[Math.abs(hash + index) % GHIBLI_PALETTES.length];
+
+        if (colors.length === 1) {
+            const c = colors[0];
+            const bright = adjustHex(c, 55);
+            const { r, g, b } = hexToRgb(c);
+            barFrameEl.style.setProperty(
+                "--bar-border-grad",
+                `conic-gradient(from var(--ghibli-angle), transparent 8%, ${c} 28%, ${bright} 52%, #ffffff 62%, ${c} 78%, transparent 94%)`
+            );
+            barFrameEl.style.setProperty("--bar-glow-color", `rgba(${r}, ${g}, ${b}, 0.45)`);
+        } else {
+            const stops = colors.map((c, idx) => {
+                const pct = Math.round((idx / colors.length) * 100);
+                return `${c} ${pct}%`;
+            });
+            stops.push(`${colors[0]} 100%`);
+            const { r, g, b } = hexToRgb(colors[0]);
+            barFrameEl.style.setProperty(
+                "--bar-border-grad",
+                `conic-gradient(from var(--ghibli-angle), ${stops.join(", ")})`
+            );
+            barFrameEl.style.setProperty("--bar-glow-color", `rgba(${r}, ${g}, ${b}, 0.45)`);
+        }
     }
 
     function animateRoller(direction) {
@@ -1281,17 +1394,9 @@ function initDateWiseAnalysis() {
         }
     }
 
-    function renderGhibliBar() {
+    function renderGhibliBar(forceAnimate) {
         const daySessions = historyLog.filter((item) => item.date === selectedDateKey);
         const totalMins = daySessions.reduce((sum, item) => sum + item.minutes, 0);
-
-        stackedBarEl.innerHTML = "";
-        legendEl.innerHTML = "";
-
-        if (daySessions.length === 0 || totalMins <= 0) {
-            stackedBarEl.innerHTML = `<div class="ghibli-empty">No sessions logged on this day.</div>`;
-            return;
-        }
 
         const totalsByLabel = {};
         daySessions.forEach((item) => {
@@ -1300,10 +1405,29 @@ function initDateWiseAnalysis() {
         });
 
         const entries = Object.entries(totalsByLabel).sort((a, b) => b[1] - a[1]);
+        const signature = selectedDateKey + "|" + entries.map(([l, m]) => `${l}:${m}:${getLabelColor(l)}`).join(",");
+
+        // Prevent double-filling animation if cloud sync returns identical data
+        if (!forceAnimate && signature === lastBarSignature) return;
+        lastBarSignature = signature;
+
+        stackedBarEl.innerHTML = "";
+        legendEl.innerHTML = "";
+
+        if (entries.length === 0 || totalMins <= 0) {
+            applyDynamicBorderColors([]);
+            stackedBarEl.innerHTML = `<div class="ghibli-empty">No sessions logged on this day.</div>`;
+            return;
+        }
+
+        const activeColors = entries.map(([lbl]) => getLabelColor(lbl));
+        applyDynamicBorderColors(activeColors);
 
         entries.forEach(([lbl, mins], idx) => {
             const pct = Math.max(1, Math.round((mins / totalMins) * 100));
-            const bg = getGhibliColor(lbl, idx);
+            const baseHex = getLabelColor(lbl);
+            const bg = makeGhibliGradient(baseHex);
+            const textColor = getContrastTextColor(baseHex);
 
             const seg = document.createElement("div");
             seg.className = "ghibli-segment";
@@ -1315,13 +1439,14 @@ function initDateWiseAnalysis() {
 
             const textSpan = document.createElement("span");
             textSpan.className = "ghibli-seg-text";
+            textSpan.style.color = textColor;
             textSpan.textContent = `${lbl} - ${pct}%`;
             seg.appendChild(textSpan);
             stackedBarEl.appendChild(seg);
 
             const chip = document.createElement("span");
             chip.className = "dwa-legend-chip";
-            chip.innerHTML = `<span class="dwa-legend-dot" style="background: ${bg};"></span>${escapeHTML(lbl)} - ${pct}% (${mins}m)`;
+            chip.innerHTML = `<span class="dwa-legend-dot" style="background: ${baseHex};"></span>${escapeHTML(lbl)} - ${pct}% (${mins}m)`;
             legendEl.appendChild(chip);
         });
     }
@@ -1336,15 +1461,13 @@ function initDateWiseAnalysis() {
         calViewMonth = thisWeekDates[clamped].getMonth();
         if (dir) animateRoller(dir);
         updateRollerUI();
-        renderGhibliBar();
+        renderGhibliBar(true);
         if (!calPopover.classList.contains("hidden")) renderCalendarGrid();
     }
 
-    // Arrow buttons (Sun -> Sat)
     rollerUpBtn.addEventListener("click", () => selectWeekIndex(weekIndex - 1, "down"));
     rollerDownBtn.addEventListener("click", () => selectWeekIndex(weekIndex + 1, "up"));
 
-    // PC / Laptop Mouse Wheel Scrolling
     let lastWheelAt = 0;
     rollerViewport.addEventListener("wheel", (e) => {
         e.preventDefault();
@@ -1355,7 +1478,6 @@ function initDateWiseAnalysis() {
         else if (e.deltaY < 0) selectWeekIndex(weekIndex - 1, "down");
     }, { passive: false });
 
-    // Mobile / Tablet Touch & Pointer Dragging
     let dragStartY = null;
     let dragAccum = 0;
     const DRAG_STEP_PX = 28;
@@ -1383,14 +1505,10 @@ function initDateWiseAnalysis() {
         }
     });
 
-    function endDrag() {
-        dragStartY = null;
-        dragAccum = 0;
-    }
+    function endDrag() { dragStartY = null; dragAccum = 0; }
     rollerViewport.addEventListener("pointerup", endDrag);
     rollerViewport.addEventListener("pointercancel", endDrag);
 
-    // Custom Calendar Grid (All Past Dates + Hover Effects)
     function renderCalendarGrid() {
         const loggedDates = new Set(historyLog.map((item) => item.date));
         const firstDay = new Date(calViewYear, calViewMonth, 1);
@@ -1399,7 +1517,6 @@ function initDateWiseAnalysis() {
 
         calMonthLabel.textContent = firstDay.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
-        // Disable navigating past current month
         const isCurrentMonth = (calViewYear === today.getFullYear() && calViewMonth === today.getMonth());
         calNextBtn.disabled = isCurrentMonth;
         calNextBtn.style.opacity = isCurrentMonth ? "0.35" : "1";
@@ -1433,7 +1550,7 @@ function initDateWiseAnalysis() {
                     selectedDateKey = cellKey;
                     animateRoller("up");
                     updateRollerUI();
-                    renderGhibliBar();
+                    renderGhibliBar(true);
                     closeCalendar();
                 });
             }
@@ -1490,10 +1607,8 @@ function initDateWiseAnalysis() {
 
     refreshDateWiseAnalysis = () => {
         updateRollerUI();
-        renderGhibliBar();
+        renderGhibliBar(false);
     };
-
-    refreshDateWiseAnalysis();
 }
 
 if (document.getElementById("focus-chart")) {
@@ -1524,13 +1639,14 @@ if (document.getElementById("focus-chart")) {
         } else {
             entries.forEach(([lbl, mins]) => {
                 const pct = totalMins > 0 ? Math.round((mins / totalMins) * 100) : 0;
+                const fillColor = getLabelColor(lbl);
                 const row = document.createElement("div");
                 row.innerHTML = `
                     <div class="breakdown-item-top">
                         <span>${escapeHTML(lbl)}</span>
                         <span>${mins} min (${pct}%)</span>
                     </div>
-                    <div class="bar-track"><div class="bar-fill" style="width: ${pct}%;"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${pct}%; background: ${fillColor};"></div></div>
                 `;
                 breakdownEl.appendChild(row);
             });
