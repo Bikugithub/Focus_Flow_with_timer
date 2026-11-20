@@ -2,14 +2,14 @@
 // SUPABASE CLOUD CONFIGURATION
 // ==========================================
 const SUPABASE_URL = "https://dsizxvpmmslojmrbfgkn.supabase.co";
-const SUPABASE_KEY = "sb_publishable_IJHDHcuv4E92j8ZWSc6blA_BSb04AgZ";
+const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
 
 const db = (window.supabase && SUPABASE_KEY !== "PASTE_YOUR_PUBLISHABLE_KEY_HERE")
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
     : null;
 
 // ==========================================
-// DEFAULTS, QUOTES & STORAGE HELPERS
+// DEFAULTS, THEMES, QUOTES & STORAGE HELPERS
 // ==========================================
 const DEFAULT_SETTINGS = {
     focus: 25,
@@ -20,8 +20,18 @@ const DEFAULT_SETTINGS = {
     autoStart: false
 };
 
-const LIGHT_THEMES = ["sage-mist", "ocean-breeze", "lavender-cloud", "warm-peach", "rose-quartz"];
-const DARK_THEMES = ["midnight-pine", "deep-ocean", "twilight-plum", "amber-dusk", "nordic-slate"];
+const THEME_PALETTE = [
+    { id: "sage-mist",      name: "Sage Mist",      gradient: "linear-gradient(135deg, #d7f2e8, #4c8f78)" },
+    { id: "midnight-pine",  name: "Midnight Pine",  gradient: "linear-gradient(135deg, #162923, #72bda5)" },
+    { id: "ocean-breeze",   name: "Ocean Breeze",   gradient: "linear-gradient(135deg, #d6eefc, #3b82b6)" },
+    { id: "deep-ocean",     name: "Deep Ocean",     gradient: "linear-gradient(135deg, #102136, #5eb8e6)" },
+    { id: "lavender-cloud", name: "Lavender Cloud", gradient: "linear-gradient(135deg, #eae2fc, #7c67c4)" },
+    { id: "twilight-plum",  name: "Twilight Plum",  gradient: "linear-gradient(135deg, #1f172e, #a58be8)" },
+    { id: "warm-peach",     name: "Warm Peach",     gradient: "linear-gradient(135deg, #fce7d6, #c97b4b)" },
+    { id: "amber-dusk",     name: "Amber Dusk",     gradient: "linear-gradient(135deg, #291e16, #dfa066)" },
+    { id: "rose-quartz",    name: "Rose Quartz",    gradient: "linear-gradient(135deg, #fae0e8, #bd6582)" },
+    { id: "nordic-slate",   name: "Nordic Slate",   gradient: "linear-gradient(135deg, #161d26, #7ea8c7)" }
+];
 
 const MOTIVATIONAL_QUOTES = [
     { text: "Small consistent steps build extraordinary outcomes.", author: "FocusFlow" },
@@ -69,30 +79,21 @@ let settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON("ff_settings", {}));
 let historyLog = loadJSON("ff_history", []);
 if (!Array.isArray(historyLog)) historyLog = [];
 let currentUser = null;
-
 // ==========================================
-// 10-THEME ENGINE + QUICK LIGHT/DARK TOGGLE
+// 10-THEME FLOATING PALETTE POPOVER ENGINE
 // ==========================================
 const themeBtn = document.getElementById("theme-toggle");
-const allThemes = LIGHT_THEMES.concat(DARK_THEMES);
+const allThemeIds = THEME_PALETTE.map((t) => t.id);
 let currentTheme = localStorage.getItem("ff_theme_v3") || "sage-mist";
-if (!allThemes.includes(currentTheme)) currentTheme = "sage-mist";
-
-function isDarkTheme(name) {
-    return DARK_THEMES.includes(name);
-}
+if (!allThemeIds.includes(currentTheme)) currentTheme = "sage-mist";
 
 function applyTheme(theme) {
     currentTheme = theme;
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("ff_theme_v3", theme);
-    if (isDarkTheme(theme)) localStorage.setItem("ff_last_dark", theme);
-    else localStorage.setItem("ff_last_light", theme);
 
-    if (themeBtn) themeBtn.textContent = isDarkTheme(theme) ? "☀" : "☾";
-
-    document.querySelectorAll(".theme-card").forEach((card) => {
-        card.classList.toggle("active", card.getAttribute("data-theme-pick") === theme);
+    document.querySelectorAll("[data-theme-pick]").forEach((el) => {
+        el.classList.toggle("active", el.getAttribute("data-theme-pick") === theme);
     });
 
     if (document.getElementById("focus-chart")) {
@@ -100,17 +101,109 @@ function applyTheme(theme) {
     }
 }
 
-applyTheme(currentTheme);
+function setupThemePalettePopover() {
+    if (!themeBtn) return;
 
-if (themeBtn) {
-    themeBtn.addEventListener("click", () => {
-        const next = isDarkTheme(currentTheme)
-            ? (localStorage.getItem("ff_last_light") || "sage-mist")
-            : (localStorage.getItem("ff_last_dark") || "midnight-pine");
-        applyTheme(next);
+    // Replace sun/moon text with a clean palette SVG icon
+    themeBtn.title = "Choose Theme";
+    themeBtn.setAttribute("aria-label", "Choose Theme");
+    themeBtn.setAttribute("aria-expanded", "false");
+    themeBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="13.5" cy="6.5" r=".8" fill="currentColor"></circle>
+            <circle cx="17.5" cy="10.5" r=".8" fill="currentColor"></circle>
+            <circle cx="8.5" cy="7.5" r=".8" fill="currentColor"></circle>
+            <circle cx="6.5" cy="12.5" r=".8" fill="currentColor"></circle>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+        </svg>
+    `;
+
+    const popover = document.createElement("div");
+    popover.id = "theme-popover";
+    popover.className = "theme-popover hidden";
+    popover.setAttribute("role", "menu");
+    popover.innerHTML = `
+        <div class="theme-popover-title">Themes</div>
+        <div class="theme-popover-grid">
+            ${THEME_PALETTE.map((t) => `
+                <button type="button" class="theme-circle-btn ${t.id === currentTheme ? "active" : ""}" data-theme-pick="${t.id}">
+                    <span class="theme-circle-dot" style="background: ${t.gradient};"></span>
+                    <span class="theme-circle-name">${t.name}</span>
+                </button>
+            `).join("")}
+        </div>
+    `;
+
+    const container = themeBtn.parentElement || document.body;
+    container.appendChild(popover);
+
+    function positionPopover() {
+        const btnRect = themeBtn.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const popW = 236;
+        const margin = 12;
+
+        let desiredLeft = btnRect.left - containerRect.left;
+        const screenLeft = containerRect.left + desiredLeft;
+
+        // Keep popover cleanly inside viewport on both mobile and desktop
+        if (screenLeft + popW > window.innerWidth - margin) {
+            desiredLeft = (window.innerWidth - margin - popW) - containerRect.left;
+        }
+        if (containerRect.left + desiredLeft < margin) {
+            desiredLeft = margin - containerRect.left;
+        }
+        popover.style.left = `${Math.round(desiredLeft)}px`;
+    }
+
+    function openPopover() {
+        positionPopover();
+        popover.classList.remove("hidden");
+        themeBtn.classList.add("active");
+        themeBtn.setAttribute("aria-expanded", "true");
+    }
+
+    function closePopover() {
+        popover.classList.add("hidden");
+        themeBtn.classList.remove("active");
+        themeBtn.setAttribute("aria-expanded", "false");
+    }
+
+    themeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (popover.classList.contains("hidden")) openPopover();
+        else closePopover();
+    });
+
+    popover.querySelectorAll("[data-theme-pick]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            applyTheme(btn.getAttribute("data-theme-pick"));
+            closePopover();
+        });
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!popover.classList.contains("hidden") && !popover.contains(e.target) && e.target !== themeBtn) {
+            closePopover();
+        }
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !popover.classList.contains("hidden")) {
+            closePopover();
+        }
+    });
+
+    window.addEventListener("resize", () => {
+        if (!popover.classList.contains("hidden")) positionPopover();
     });
 }
 
+setupThemePalettePopover();
+applyTheme(currentTheme);
+
+// Bind any Settings-page theme cards too
 document.querySelectorAll(".theme-card").forEach((card) => {
     card.addEventListener("click", () => {
         applyTheme(card.getAttribute("data-theme-pick"));
@@ -168,7 +261,6 @@ function setAuthMessage(msg) {
 }
 
 if (authForm) {
-    // Log In
     authForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!db) {
@@ -197,7 +289,6 @@ if (authForm) {
         }
     });
 
-    // Sign Up
     signupBtn.addEventListener("click", async () => {
         if (!db) {
             setAuthMessage("Add your Supabase Publishable Key in script.js first.");
@@ -378,6 +469,7 @@ if (feedbackModal) {
 }
 
 bindFeedbackForm("settings-feedback-form", "settings-fb-text", "settings-fb-status", "settings");
+
 
 // ==========================================
 // QUICK GUIDE MODAL (OPENS ON FIRST VISIT)
@@ -748,6 +840,7 @@ if (timerDisplay) {
     });
 }
 
+
 // ==========================================
 // PAGE 2: TIME HISTORY (history.html)
 // ==========================================
@@ -1020,5 +1113,4 @@ if (settingsForm) {
 
     notifyBtn.addEventListener("click", () => requestDesktopNotifications(updateNotifyStatus));
     updateNotifyStatus();
-}
-
+                 }
