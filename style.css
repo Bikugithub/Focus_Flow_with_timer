@@ -7,8 +7,8 @@
     --bg-grad: radial-gradient(circle at 12% 10%, rgba(114, 214, 178, 0.34) 0%, transparent 45%),
                radial-gradient(circle at 88% 85%, rgba(124, 189, 232, 0.30) 0%, transparent 48%),
                linear-gradient(135deg, #f3faf6 0%, #eaf3f7 100%);
-    --surface: rgba(255, 255, 255, 0.82);
-    --surface-2: rgba(235, 245, 240, 0.9);
+    --surface: rgba(255, 255, 255, 0.86);
+    --surface-2: rgba(235, 245, 240, 0.92);
     --text: #1c2b26;
     --muted: #5a6f68;
     --border: rgba(154, 189, 176, 0.55);
@@ -28,8 +28,8 @@
     --bg-grad: radial-gradient(circle at 15% 12%, rgba(96, 189, 242, 0.34) 0%, transparent 46%),
                radial-gradient(circle at 85% 82%, rgba(114, 214, 214, 0.30) 0%, transparent 48%),
                linear-gradient(135deg, #f2f8fd 0%, #e7f4f7 100%);
-    --surface: rgba(255, 255, 255, 0.84);
-    --surface-2: rgba(234, 244, 252, 0.9);
+    --surface: rgba(255, 255, 255, 0.86);
+    --surface-2: rgba(234, 244, 252, 0.92);
     --text: #182736;
     --muted: #546d82;
     --border: rgba(150, 188, 216, 0.55);
@@ -48,8 +48,8 @@
     --bg-grad: radial-gradient(circle at 14% 12%, rgba(167, 139, 242, 0.32) 0%, transparent 46%),
                radial-gradient(circle at 86% 84%, rgba(129, 169, 242, 0.28) 0%, transparent 48%),
                linear-gradient(135deg, #f7f4fe 0%, #eef2fc 100%);
-    --surface: rgba(255, 255, 255, 0.84);
-    --surface-2: rgba(242, 238, 253, 0.9);
+    --surface: rgba(255, 255, 255, 0.86);
+    --surface-2: rgba(242, 238, 253, 0.92);
     --text: #241e36;
     --muted: #665e80;
     --border: rgba(182, 169, 219, 0.55);
@@ -68,8 +68,8 @@
     --bg-grad: radial-gradient(circle at 15% 12%, rgba(247, 179, 124, 0.34) 0%, transparent 46%),
                radial-gradient(circle at 85% 84%, rgba(242, 206, 134, 0.30) 0%, transparent 48%),
                linear-gradient(135deg, #fef8f3 0%, #fbf2e9 100%);
-    --surface: rgba(255, 255, 255, 0.84);
-    --surface-2: rgba(252, 240, 230, 0.9);
+    --surface: rgba(255, 255, 255, 0.86);
+    --surface-2: rgba(252, 240, 230, 0.92);
     --text: #33241a;
     --muted: #7a6150;
     --border: rgba(219, 185, 160, 0.55);
@@ -88,8 +88,8 @@
     --bg-grad: radial-gradient(circle at 14% 12%, rgba(240, 156, 185, 0.32) 0%, transparent 46%),
                radial-gradient(circle at 86% 84%, rgba(195, 160, 232, 0.28) 0%, transparent 48%),
                linear-gradient(135deg, #fef6f8 0%, #f7eff9 100%);
-    --surface: rgba(255, 255, 255, 0.84);
-    --surface-2: rgba(251, 237, 242, 0.9);
+    --surface: rgba(255, 255, 255, 0.86);
+    --surface-2: rgba(251, 237, 242, 0.92);
     --text: #331e27;
     --muted: #7a5967;
     --border: rgba(217, 173, 189, 0.55);
@@ -108,8 +108,8 @@
     --bg-grad: radial-gradient(circle at 15% 12%, rgba(88, 196, 158, 0.22) 0%, transparent 46%),
                radial-gradient(circle at 85% 84%, rgba(96, 165, 212, 0.18) 0%, transparent 48%),
                linear-gradient(135deg, #101816 0%, #111920 100%);
-    --surface: rgba(24, 34, 31, 0.86);
-    --surface-2: rgba(33, 46, 42, 0.92);
+    --surface: rgba(24, 34, 31, 0.92);
+    --surface-2: rgba(33, 46, 42, 0.95);
     --text: #e6f0ed;
     --muted: #93aba4;
     --border: rgba(74, 102, 93, 0.52);
@@ -128,8 +128,8 @@
     --bg-grad: radial-gradient(circle at 15% 12%, rgba(74, 178, 232, 0.24) 0%, transparent 46%),
                radial-gradient(circle at 85% 84%, rgba(64, 196, 196, 0.18) 0%, transparent 48%),
                linear-gradient(135deg, #0c1724 0%, #0d1d24 100%);
-    --surface: rgba(20, 34, 50, 0.86);
-    --surface-2: rgba(28, 46, 66, 0.92);
+    --surface: rgba(20, 34, 50, 0.92);
+    --surface-2: rgba(28, 46, 66, 0.95);
     --text: #e6f1fa;
     --muted: #8ea9c2;
     --border: rgba(68, 102, 134, 0.52);
@@ -148,8 +148,8 @@
     --bg-grad: radial-gradient(circle at 15% 12%, rgba(162, 128, 240, 0.24) 0%, transparent 46%),
                radial-gradient(circle at 85% 84%, rgba(214, 126, 176, 0.18) 0%, transparent 48%),
                linear-gradient(135deg, #161124 0%, #1d1324 100%);
-    --surface: rgba(31, 25, 48, 0.86);
-    --surface-2: rgba(42, 34, 64, 0.92);
+    --surface: rgba(31, 25, 48, 0.92);
+    --surface-2: rgba(42, 34, 64, 0.95);
     --text: #eee9fa;
     --muted: #a399bf;
     --border: rgba(95, 80, 135, 0.52);
@@ -168,8 +168,8 @@
     --bg-grad: radial-gradient(circle at 15% 12%, rgba(232, 162, 96, 0.22) 0%, transparent 46%),
                radial-gradient(circle at 85% 84%, rgba(214, 126, 114, 0.18) 0%, transparent 48%),
                linear-gradient(135deg, #1d1611 0%, #211616 100%);
-    --surface: rgba(39, 30, 24, 0.86);
-    --surface-2: rgba(52, 40, 32, 0.92);
+    --surface: rgba(39, 30, 24, 0.92);
+    --surface-2: rgba(52, 40, 32, 0.95);
     --text: #f5ede6;
     --muted: #b5a08f;
     --border: rgba(117, 92, 74, 0.52);
@@ -188,8 +188,8 @@
     --bg-grad: radial-gradient(circle at 15% 12%, rgba(126, 168, 209, 0.22) 0%, transparent 46%),
                radial-gradient(circle at 85% 84%, rgba(142, 191, 184, 0.18) 0%, transparent 48%),
                linear-gradient(135deg, #131921 0%, #161d24 100%);
-    --surface: rgba(28, 35, 46, 0.86);
-    --surface-2: rgba(38, 47, 61, 0.92);
+    --surface: rgba(28, 35, 46, 0.92);
+    --surface-2: rgba(38, 47, 61, 0.95);
     --text: #eaf0f7;
     --muted: #98a8ba;
     --border: rgba(84, 100, 122, 0.52);
@@ -260,7 +260,7 @@ body {
 }
 
 /* =========================================
-   SHELL, NAVBAR & CARDS
+   SHELL, NAVBAR & QUICK THEME PALETTE POPOVER
    ========================================= */
 .app-shell {
     position: relative;
@@ -272,6 +272,8 @@ body {
 }
 
 .navbar {
+    position: relative;
+    z-index: 60;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -313,7 +315,12 @@ body {
     box-shadow: 0 4px 12px var(--accent-soft);
 }
 
-.nav-actions { display: flex; gap: 8px; }
+.nav-actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
 .icon-btn, .icon-btn-sm {
     border-radius: 50%;
@@ -329,7 +336,91 @@ body {
 }
 
 .icon-btn { width: 40px; height: 40px; font-size: 1.05rem; }
+.icon-btn.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); color: var(--accent); }
 .icon-btn-sm { width: 32px; height: 32px; font-size: 0.85rem; flex-shrink: 0; }
+
+/* Floating 2x5 Circular Theme Palette Popover */
+.theme-popover {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 0;
+    width: 236px;
+    background: var(--surface);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px 12px 16px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.32), 0 4px 14px rgba(0, 0, 0, 0.14);
+    z-index: 200;
+    animation: popoverDrop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes popoverDrop {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.theme-popover-title {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+}
+
+.theme-popover-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 10px;
+}
+
+.theme-circle-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 4px 2px;
+    border-radius: 12px;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.theme-circle-dot {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.theme-circle-btn.active .theme-circle-dot {
+    border: 2.5px solid var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 6px 14px rgba(0, 0, 0, 0.28);
+    transform: scale(1.08);
+}
+
+.theme-circle-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted);
+    line-height: 1.15;
+    text-align: center;
+    padding-bottom: 2px;
+    border-bottom: 1.5px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.theme-circle-btn.active .theme-circle-name {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
 
 .card {
     background: var(--surface);
@@ -481,7 +572,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     gap: 10px;
 }
 
-/* 10-Theme Picker Grid */
+/* 10-Theme Picker Grid (Settings Page) */
 .theme-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -562,6 +653,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); border-color: var(--accent); }
     .nav-link:hover:not(.active) { color: var(--text); background: var(--surface-2); transform: translateY(-2px); }
     .icon-btn:hover, .icon-btn-sm:hover { transform: translateY(-2px) scale(1.06); border-color: var(--accent); box-shadow: 0 6px 14px var(--accent-soft); }
+    .theme-circle-btn:hover { background: var(--surface-2); transform: translateY(-2px); }
     .mode-btn:hover:not(.active), .label-pill:hover:not(.active), .rate-btn:hover:not(.active),
     .theme-card:hover, .btn-secondary:hover, .btn-outline:hover { transform: translateY(-2px); border-color: var(--accent); color: var(--text); }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px var(--accent-soft); }
@@ -570,7 +662,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 
 .btn-primary:active, .btn-secondary:active, .btn-outline:active,
-.mode-btn:active, .label-pill:active, .rate-btn:active, .theme-card:active,
+.mode-btn:active, .label-pill:active, .rate-btn:active, .theme-card:active, .theme-circle-btn:active,
 .icon-btn:active, .icon-btn-sm:active, .nav-link:active, .btn-danger-sm:active {
     transform: translateY(1px) scale(0.97);
-}
+           }
