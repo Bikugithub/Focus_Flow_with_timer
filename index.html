@@ -45,12 +45,17 @@
         </section>
 
         <main class="timer-layout">
-            <!-- Main Focus Timer Card -->
+            <!-- Main Focus Timer Card (Equal Height with Side Stack on Desktop) -->
             <section class="card timer-card">
-                <div class="mode-switcher">
-                    <button type="button" class="mode-btn active" data-mode="focus">Focus</button>
-                    <button type="button" class="mode-btn" data-mode="short">Short Break</button>
-                    <button type="button" class="mode-btn" data-mode="long">Long Break</button>
+                <div class="mode-switcher-unified">
+                    <button type="button" id="mode-focus-btn" class="mode-btn active" data-mode="focus">Focus</button>
+
+                    <!-- Gliding Short Break / Long Break Switch -->
+                    <div id="break-glide-switch" class="break-glide-switch" data-active-break="short" role="group" aria-label="Choose Break Type">
+                        <span class="break-glide-thumb" aria-hidden="true"></span>
+                        <button type="button" class="break-glide-opt active-choice" data-break="short">Short Break</button>
+                        <button type="button" class="break-glide-opt" data-break="long">Long Break</button>
+                    </div>
                 </div>
 
                 <div class="ring-wrapper">
@@ -64,24 +69,26 @@
                     </div>
                 </div>
 
-                <div class="label-picker">
-                    <div class="label-picker-head">
-                        <span class="field-caption" style="margin-bottom: 0;">SESSION LABEL</span>
-                        <button type="button" id="btn-manage-labels" class="add-session-btn" title="Add, edit, or recolor session labels">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            <span>Add Session</span>
-                        </button>
+                <div class="timer-bottom-controls">
+                    <div class="label-picker">
+                        <div class="label-picker-head">
+                            <span class="field-caption" style="margin-bottom: 0;">SESSION LABEL</span>
+                            <button type="button" id="btn-manage-labels" class="add-session-btn" title="Add, edit, or recolor session labels">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                <span>Add Session</span>
+                            </button>
+                        </div>
+                        <div class="pill-group" id="label-pill-group"></div>
                     </div>
-                    <div class="pill-group" id="label-pill-group"></div>
-                </div>
 
-                <div class="task-box">
-                    <input type="text" id="task-input" placeholder="What are you focusing on? (optional)">
-                </div>
+                    <div class="task-box">
+                        <input type="text" id="task-input" placeholder="What are you focusing on? (optional)">
+                    </div>
 
-                <div class="controls">
-                    <button type="button" id="btn-start-pause" class="btn-primary">START</button>
-                    <button type="button" id="btn-reset" class="btn-secondary">RESET</button>
+                    <div class="controls">
+                        <button type="button" id="btn-start-pause" class="btn-primary">START</button>
+                        <button type="button" id="btn-reset" class="btn-secondary">RESET</button>
+                    </div>
                 </div>
             </section>
 
@@ -156,8 +163,8 @@
                 <button type="button" id="btn-close-guide-x" class="icon-btn-sm" aria-label="Close">✕</button>
             </div>
             <ol class="guide-steps">
-                <li><strong>Pick a Mode & Label:</strong> Choose Focus, Short Break, or Long Break, and select or create a color-coded session label.</li>
-                <li><strong>Start & Stay Calm:</strong> Your timer stays accurate even if you switch tabs.</li>
+                <li><strong>Pick Focus + Break Type:</strong> Choose Focus and glide the break switch between Short Break (5–12m) or Long Break (15–50m).</li>
+                <li><strong>Color-Code Labels:</strong> Tap <em>+ Add Session</em> to create, rename, or pick custom colors for each label.</li>
                 <li><strong>Track Progress:</strong> Completed sessions sync to History and Date-Wise Analytics automatically.</li>
                 <li><strong>Switch Themes Anytime:</strong> Tap the palette icon in the top bar to pick from 10 soothing themes.</li>
             </ol>
