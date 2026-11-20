@@ -141,19 +141,23 @@
                 <button type="button" id="btn-request-notify" class="btn-outline" style="max-width: 260px;">Enable Notifications</button>
             </section>
 
-            <!-- Account Login -->
+            <!-- Account Login (Name + Email + Password) -->
             <section class="card">
                 <h2 class="card-title">ACCOUNT LOGIN</h2>
-                <p id="auth-status" class="muted-text" style="margin-bottom: 14px;">Log in or create an account to sync your focus sessions to your personal profile.</p>
+                <p id="auth-status" class="muted-text" style="margin-bottom: 14px;">Log in or sign up to sync your sessions, custom labels, colors, and settings across devices.</p>
 
                 <form id="auth-form" class="auth-form">
                     <div class="field">
+                        <label for="auth-name">Full Name</label>
+                        <input type="text" id="auth-name" placeholder="Your Full Name" maxlength="60" autocomplete="name">
+                    </div>
+                    <div class="field">
                         <label for="auth-email">Email Address</label>
-                        <input type="email" id="auth-email" placeholder="you@example.com" required>
+                        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" required>
                     </div>
                     <div class="field">
                         <label for="auth-password">Password (min 6 characters)</label>
-                        <input type="password" id="auth-password" placeholder="••••••••" minlength="6" required>
+                        <input type="password" id="auth-password" placeholder="••••••••" minlength="6" autocomplete="current-password" required>
                     </div>
                     <div class="auth-btn-row">
                         <button type="submit" id="btn-email-login" class="btn-primary">LOG IN</button>
