@@ -1435,3 +1435,58 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .icon-btn:active, .icon-btn-sm:active, .nav-link:active, .btn-danger-sm:active {
     transform: translateY(1px) scale(0.97);
 }
+
+
+/* =========================================
+   LIGHT-THEME THIN DARK BORDERS (FOR WHITE/PALE LABEL COLORS)
+   ========================================= */
+[data-theme="sage-mist"] .ghibli-segment,
+[data-theme="ocean-breeze"] .ghibli-segment,
+[data-theme="lavender-cloud"] .ghibli-segment,
+[data-theme="warm-peach"] .ghibli-segment,
+[data-theme="rose-quartz"] .ghibli-segment {
+    border: 1px solid rgba(0, 0, 0, 0.38);
+    box-shadow:
+        0 0 14px 1px var(--seg-glow, var(--accent-soft)),
+        0 2px 8px rgba(0, 0, 0, 0.09),
+        inset 0 1px 6px rgba(255, 255, 255, 0.32);
+}
+
+[data-theme="sage-mist"] .bar-fill,
+[data-theme="ocean-breeze"] .bar-fill,
+[data-theme="lavender-cloud"] .bar-fill,
+[data-theme="warm-peach"] .bar-fill,
+[data-theme="rose-quartz"] .bar-fill {
+    border: 1px solid rgba(0, 0, 0, 0.28);
+}
+
+[data-theme="sage-mist"] .dwa-top-dot,
+[data-theme="ocean-breeze"] .dwa-top-dot,
+[data-theme="lavender-cloud"] .dwa-top-dot,
+[data-theme="warm-peach"] .dwa-top-dot,
+[data-theme="rose-quartz"] .dwa-top-dot,
+[data-theme="sage-mist"] .dwa-tl-node,
+[data-theme="ocean-breeze"] .dwa-tl-node,
+[data-theme="lavender-cloud"] .dwa-tl-node,
+[data-theme="warm-peach"] .dwa-tl-node,
+[data-theme="rose-quartz"] .dwa-tl-node,
+[data-theme="sage-mist"] .label-pill-dot,
+[data-theme="ocean-breeze"] .label-pill-dot,
+[data-theme="lavender-cloud"] .label-pill-dot,
+[data-theme="warm-peach"] .label-pill-dot,
+[data-theme="rose-quartz"] .label-pill-dot,
+[data-theme="sage-mist"] .label-chip,
+[data-theme="ocean-breeze"] .label-chip,
+[data-theme="lavender-cloud"] .label-chip,
+[data-theme="warm-peach"] .label-chip,
+[data-theme="rose-quartz"] .label-chip {
+    border: 1px solid rgba(0, 0, 0, 0.28);
+}
+
+[data-theme="sage-mist"] .label-pill.active,
+[data-theme="ocean-breeze"] .label-pill.active,
+[data-theme="lavender-cloud"] .label-pill.active,
+[data-theme="warm-peach"] .label-pill.active,
+[data-theme="rose-quartz"] .label-pill.active {
+    border-color: rgba(0, 0, 0, 0.35);
+}
