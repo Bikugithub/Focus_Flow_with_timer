@@ -173,7 +173,7 @@ function getLabelColor(labelName) {
 }
 
 let currentUser = null;
-let onPreferencesSynced = null; // Page-specific UI refresh hook
+let onPreferencesSynced = null;
 
 // ==========================================
 // IMMERSIVE INTERACTIVE BACKGROUND ENGINE
@@ -422,7 +422,6 @@ async function syncPreferencesFromCloud(overrideName) {
             : "";
 
         if (!data) {
-            // First time this account syncs preferences — upload current local setup
             userProfileName = (overrideName || metaName || userProfileName || "").trim();
             try { localStorage.setItem("ff_user_name", userProfileName); } catch (e) {}
             updateAuthUI();
@@ -741,7 +740,6 @@ async function submitFeedbackToCloud(rating, message, statusEl) {
     }]);
 
     if (error) {
-        // Fallback if user_name column was not added yet
         const retry = await db.from("feedback").insert([{
             user_email: currentUser ? `${displayName} (${currentUser.email})` : "Guest",
             rating: rating,
