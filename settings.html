@@ -26,27 +26,27 @@
                 <a href="settings.html" class="nav-link active">Settings</a>
             </nav>
             <div class="nav-actions">
-                <button type="button" id="theme-toggle" class="icon-btn" title="Quick Light/Dark Switch">☾</button>
+                <button type="button" id="theme-toggle" class="icon-btn" title="Choose Theme" aria-label="Choose Theme">☾</button>
             </div>
         </header>
 
         <main class="stack-layout">
-            <!-- 1. Timer & Sound Settings -->
+            <!-- Timer & Sound Settings -->
             <section class="card">
                 <h2 class="card-title">TIMER & SOUND SETTINGS</h2>
                 <form id="settings-form" class="settings-form">
                     <div class="form-grid-3">
                         <div class="field">
                             <label for="set-focus">Focus (min)</label>
-                            <input type="number" id="set-focus" min="1" max="120" required>
+                            <input type="number" id="set-focus" min="1" max="180" value="25" required>
                         </div>
                         <div class="field">
-                            <label for="set-short">Short Break (min)</label>
-                            <input type="number" id="set-short" min="1" max="60" required>
+                            <label for="set-short">Short Break (5–12 min)</label>
+                            <input type="number" id="set-short" min="5" max="12" value="5" required>
                         </div>
                         <div class="field">
-                            <label for="set-long">Long Break (min)</label>
-                            <input type="number" id="set-long" min="1" max="60" required>
+                            <label for="set-long">Long Break (15–50 min)</label>
+                            <input type="number" id="set-long" min="15" max="50" value="15" required>
                         </div>
                     </div>
 
@@ -55,7 +55,7 @@
                             <strong>Gentle Audio Alert</strong>
                             <p class="muted-text">Play a calming sound when a timer finishes.</p>
                         </div>
-                        <input type="checkbox" id="set-sound" class="checkbox-lg">
+                        <input type="checkbox" id="set-sound" class="checkbox-lg" checked>
                     </div>
 
                     <div class="field">
@@ -86,11 +86,11 @@
                 </form>
             </section>
 
-            <!-- 2. 10 Soothing Luminous Themes -->
+            <!-- 10-Theme Palette -->
             <section class="card">
                 <h2 class="card-title">SOOTHING THEME PALETTE (10 THEMES)</h2>
                 <p class="muted-text" style="margin-bottom: 14px;">Pick any light or dark ambient glow theme. Saved automatically across all pages.</p>
-                <div class="theme-grid" id="theme-picker">
+                <div class="theme-grid">
                     <button type="button" class="theme-card" data-theme-pick="sage-mist">
                         <span class="swatch" style="background: linear-gradient(135deg, #d7f2e8, #4c8f78);"></span>
                         <span>Sage Mist</span>
@@ -134,16 +134,14 @@
                 </div>
             </section>
 
-            <!-- 3. Desktop Notifications -->
+            <!-- Desktop Notifications -->
             <section class="card">
                 <h2 class="card-title">DESKTOP NOTIFICATIONS</h2>
-                <p id="notify-status" class="muted-text">Checking browser support...</p>
-                <button type="button" id="btn-request-notify" class="btn-outline" style="margin-top: 12px; max-width: 300px;">
-                    Enable Notifications
-                </button>
+                <p id="notify-status" class="muted-text" style="margin-bottom: 12px;">Status: Checking...</p>
+                <button type="button" id="btn-request-notify" class="btn-outline" style="max-width: 260px;">Enable Notifications</button>
             </section>
 
-            <!-- 4. Account Login (Email & Password — Directly Above Send Feedback) -->
+            <!-- Account Login -->
             <section class="card">
                 <h2 class="card-title">ACCOUNT LOGIN</h2>
                 <p id="auth-status" class="muted-text" style="margin-bottom: 14px;">Log in or create an account to sync your focus sessions to your personal profile.</p>
@@ -151,11 +149,11 @@
                 <form id="auth-form" class="auth-form">
                     <div class="field">
                         <label for="auth-email">Email Address</label>
-                        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" required>
+                        <input type="email" id="auth-email" placeholder="you@example.com" required>
                     </div>
                     <div class="field">
                         <label for="auth-password">Password (min 6 characters)</label>
-                        <input type="password" id="auth-password" placeholder="••••••••" minlength="6" autocomplete="current-password" required>
+                        <input type="password" id="auth-password" placeholder="••••••••" minlength="6" required>
                     </div>
                     <div class="auth-btn-row">
                         <button type="submit" id="btn-email-login" class="btn-primary">LOG IN</button>
@@ -163,13 +161,11 @@
                     </div>
                 </form>
 
-                <button type="button" id="btn-auth-logout" class="btn-danger-sm hidden" style="height: 44px; padding: 0 20px;">
-                    Sign Out
-                </button>
+                <button type="button" id="btn-auth-logout" class="btn-danger-sm hidden" style="margin-top: 8px; padding: 10px 18px;">Sign Out</button>
                 <p id="auth-feedback" class="feedback-msg" style="margin-top: 10px;"></p>
             </section>
 
-            <!-- 5. Send Feedback -->
+            <!-- Send Feedback -->
             <section class="card">
                 <h2 class="card-title">SEND FEEDBACK</h2>
                 <p class="muted-text" style="margin-bottom: 14px;">Tell us what you love or what we should improve next.</p>
@@ -182,7 +178,7 @@
                         <button type="button" class="rate-btn active" data-val="5">5 ★</button>
                     </div>
                     <textarea id="settings-fb-text" rows="4" placeholder="Write your feedback here..." required></textarea>
-                    <button type="submit" class="btn-primary" style="max-width: 260px;">SEND FEEDBACK</button>
+                    <button type="submit" class="btn-primary" style="max-width: 240px;">SEND FEEDBACK</button>
                     <p id="settings-fb-status" class="feedback-msg"></p>
                 </form>
             </section>
@@ -192,5 +188,4 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
-    </html>
-    
+</html>
