@@ -69,7 +69,7 @@ const GUIDE_STEPS = [
     {
         icon: "✨",
         title: "Deep Focus, Visualized",
-        body: "FocusFlow turns every study or work block into a calm visual rhythm. Watch the luminous golden ring sweep, dissolve into drifting stardust, and pair your session with soothing rain, fireplace, river, or wind ambience.",
+        body: "FocusFlow turns every study or work block into a calm visual rhythm. Watch the luminous golden border sweep clockwise as fine glittering dust shimmers inside the timer, paired with soothing rain, fireplace, river, or wind ambience.",
         tip: "Tip: Once a timer starts, mode and label switching lock automatically so you stay committed—use Pause or Reset anytime."
     },
     {
@@ -1106,7 +1106,6 @@ const AmbientSoundEngine = (function () {
         masterGain.connect(ctx.destination);
 
         if (type === "rain") {
-            // Soft warm rain bed (low-passed to avoid harsh static hiss)
             const rainSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
             const lp = ctx.createBiquadFilter();
             lp.type = "lowpass";
@@ -1127,7 +1126,6 @@ const AmbientSoundEngine = (function () {
             rainSrc.start();
             activeNodes.push(rainSrc, hp, lp, rainGain);
 
-            // Warm distant rainfall depth
             const lowSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
             const lowFilter = ctx.createBiquadFilter();
             lowFilter.type = "lowpass";
@@ -1140,7 +1138,6 @@ const AmbientSoundEngine = (function () {
             lowSrc.start();
             activeNodes.push(lowSrc, lowFilter, lowGain);
 
-            // Subtle randomized soft raindrops
             function scheduleDrop() {
                 if (activeType !== "rain" || !masterGain) return;
                 try {
@@ -1163,7 +1160,6 @@ const AmbientSoundEngine = (function () {
             }
             scheduleDrop();
         } else if (type === "fire") {
-            // Warm winter fireplace / furnace rumble
             const hearthSrc = makeLoopSource(ctx, getBrownBuffer(ctx));
             const lp = ctx.createBiquadFilter();
             lp.type = "lowpass";
@@ -1177,7 +1173,6 @@ const AmbientSoundEngine = (function () {
             hearthSrc.start();
             activeNodes.push(hearthSrc, lp, hearthGain);
 
-            // Soft flame glow
             const hissSrc = makeLoopSource(ctx, getPinkBuffer(ctx));
             const hissBp = ctx.createBiquadFilter();
             hissBp.type = "bandpass";
@@ -1191,7 +1186,6 @@ const AmbientSoundEngine = (function () {
             hissSrc.start();
             activeNodes.push(hissSrc, hissBp, hissGain);
 
-            // Randomized wood crackles
             function scheduleCrackle() {
                 if (activeType !== "fire" || !masterGain) return;
                 try {
@@ -1219,7 +1213,6 @@ const AmbientSoundEngine = (function () {
             }
             scheduleCrackle();
         } else if (type === "river") {
-            // Smooth warm brown-noise river body with slow current swell
             const riverBody = makeLoopSource(ctx, getBrownBuffer(ctx));
             const lp = ctx.createBiquadFilter();
             lp.type = "lowpass";
@@ -1244,7 +1237,6 @@ const AmbientSoundEngine = (function () {
             lfo.start();
             activeNodes.push(riverBody, lp, lfo, lfoGain, bodyGain);
 
-            // Delicate babbling water surface shimmer
             const shimmer = makeLoopSource(ctx, getPinkBuffer(ctx));
             const bp = ctx.createBiquadFilter();
             bp.type = "bandpass";
@@ -1259,7 +1251,6 @@ const AmbientSoundEngine = (function () {
             shimmer.start();
             activeNodes.push(shimmer, bp, shimmerGain);
         } else if (type === "wind") {
-            // Layered gusting wind storm
             const wind1 = makeLoopSource(ctx, getPinkBuffer(ctx));
             const bp1 = ctx.createBiquadFilter();
             bp1.type = "bandpass";
@@ -1356,7 +1347,7 @@ function getTodayStats() {
 }
 
 // ==========================================
-// CELESTIAL GOLDEN-WHITE RING & STARDUST ENGINE
+// 60 FPS INTERIOR GLITTERING DUST & GOLDEN BORDER ENGINE
 // ==========================================
 function createCelestialRingEngine(canvas) {
     if (!canvas) {
@@ -1371,10 +1362,16 @@ function createCelestialRingEngine(canvas) {
     const TOP = -Math.PI / 2;
     const TAU = Math.PI * 2;
 
-    // 11-second rhythm: clockwise draw -> brief peak glow -> feathered dissolve + stardust -> quiet beat
-    const DRAW_END = 3.3;
-    const HOLD_END = 4.2;
-    const DISSOLVE_END = 9.5;
+    // Seamless 11s loop:
+    // 0.0 -> 3.8s : Golden border draws clockwise from top, igniting high-frequency interior dust
+    //               and sweeping lingering fading dust clockwise along with the border line.
+    // 3.8 -> 4.6s : Full luminous golden border peak while interior dust shimmers densely.
+    // 4.6 -> 8.2s : Golden border smoothly retracts clockwise while interior dust continues glittering.
+    // 8.2 -> 11.0s: Border is off; interior dust stays alive, glittering and slowly fading until
+    //               the next golden border sweep starts from the top and sweeps it along.
+    const DRAW_END = 3.8;
+    const HOLD_END = 4.6;
+    const OFF_END = 8.2;
     const CYCLE_DURATION = 11.0;
 
     let isRunning = false;
@@ -1389,6 +1386,7 @@ function createCelestialRingEngine(canvas) {
     let cx = 190;
     let cy = 190;
     let radius = 118;
+    let innerClipRadius = 112;
 
     function isDarkTheme() {
         const t = document.documentElement.getAttribute("data-theme") || "sage-mist";
@@ -1415,6 +1413,7 @@ function createCelestialRingEngine(canvas) {
         cx = cssW / 2;
         cy = cssH / 2;
         radius = base * 0.435;
+        innerClipRadius = Math.max(40, radius - 4.5);
 
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         canvas.width = Math.round(cssW * dpr);
@@ -1427,37 +1426,49 @@ function createCelestialRingEngine(canvas) {
         if (isDarkTheme()) {
             return {
                 dark: true,
-                idleTrack: "rgba(255, 226, 160, 0.18)",
-                idleRim: "rgba(255, 198, 92, 0.34)",
-                outerGlow: "rgba(255, 174, 52, 0.44)",
-                midGlow: "rgba(255, 214, 122, 0.88)",
-                core: "#fffcf2",
-                shadowOuter: "rgba(255, 176, 54, 0.72)",
-                shadowMid: "rgba(255, 224, 148, 0.85)",
-                dustHalo: [255, 194, 84],
-                dustCore: [255, 251, 236]
+                idleTrack: "rgba(255, 224, 150, 0.16)",
+                idleRim: "rgba(255, 200, 96, 0.30)",
+                innerWash: "rgba(255, 198, 86, 0.06)",
+                bloomWide: "rgba(255, 174, 48, 0.16)",
+                bloomMid: "rgba(255, 204, 98, 0.38)",
+                goldRing: "rgba(255, 222, 134, 0.92)",
+                core: "#fffef6",
+                dustColors: [
+                    [255, 184, 58],
+                    [255, 212, 108],
+                    [255, 232, 166],
+                    [255, 248, 220],
+                    [255, 255, 255]
+                ],
+                glintArm: [255, 246, 210]
             };
         }
-        // Light themes: warm burnished amber outer bloom framing a luminous golden-white core
+        // Light themes: burnished warm amber-gold + sparkling sunlit champagne & ivory-white
+        // so fine dust and the golden-white border stay sharp and unmistakable on light cards
         return {
             dark: false,
-            idleTrack: "rgba(186, 128, 34, 0.24)",
-            idleRim: "rgba(196, 134, 30, 0.44)",
-            outerGlow: "rgba(186, 114, 16, 0.46)",
-            midGlow: "rgba(232, 166, 48, 0.92)",
-            core: "#fffdf6",
-            shadowOuter: "rgba(176, 104, 12, 0.52)",
-            shadowMid: "rgba(222, 152, 34, 0.68)",
-            dustHalo: [194, 120, 18],
-            dustCore: [255, 249, 224]
+            idleTrack: "rgba(182, 122, 26, 0.22)",
+            idleRim: "rgba(194, 132, 28, 0.42)",
+            innerWash: "rgba(218, 156, 38, 0.06)",
+            bloomWide: "rgba(196, 124, 18, 0.16)",
+            bloomMid: "rgba(224, 154, 34, 0.40)",
+            goldRing: "rgba(232, 164, 42, 0.96)",
+            core: "#fffdf5",
+            dustColors: [
+                [172, 102, 10],
+                [202, 128, 18],
+                [226, 158, 34],
+                [244, 192, 68],
+                [255, 248, 218]
+            ],
+            glintArm: [196, 126, 18]
         };
     }
 
-    function spawnStardust(tipAngle, remainingArc, dt) {
+    function spawnInteriorDust(anchorAngle, spreadRad, countPerSec, dt, mode) {
         const isMobile = window.innerWidth < 640;
-        const maxParticles = isMobile ? 95 : 165;
-        const rate = isMobile ? 34 : 58;
-        spawnCarry += rate * dt;
+        const maxParticles = isMobile ? 340 : 500;
+        spawnCarry += countPerSec * dt;
 
         while (spawnCarry >= 1) {
             spawnCarry -= 1;
@@ -1465,32 +1476,54 @@ function createCelestialRingEngine(canvas) {
                 particles.shift();
             }
 
-            const spreadAngle = tipAngle + (Math.random() - 0.15) * Math.min(remainingArc, 0.34);
-            const radialJitter = (Math.random() - 0.5) * 11;
-            const px = cx + Math.cos(spreadAngle) * (radius + radialJitter);
-            const py = cy + Math.sin(spreadAngle) * (radius + radialJitter);
+            // Pick a point strictly INSIDE the timer circle near the active golden border
+            const ang = anchorAngle - Math.random() * spreadRad;
+            const depthRand = Math.pow(Math.random(), 1.35);
+            const dist = innerClipRadius - (1.5 + depthRand * (innerClipRadius * 0.62));
+            const px = cx + Math.cos(ang) * dist;
+            const py = cy + Math.sin(ang) * dist;
 
-            const inwardX = (cx - px) * (0.04 + Math.random() * 0.08);
-            const vx = inwardX + (Math.random() - 0.5) * 22;
-            const vy = 10 + Math.random() * 26;
-            const isSpark = Math.random() < 0.26;
+            // Tangent (clockwise) + inward radial drift so dust streams cleanly inside the ring
+            const cosA = Math.cos(ang);
+            const sinA = Math.sin(ang);
+            const tangX = -sinA;
+            const tangY = cosA;
+            const inX = -cosA;
+            const inY = -sinA;
 
+            const inwardSpeed = mode === "draw"
+                ? (14 + Math.random() * 28)
+                : (8 + Math.random() * 22);
+            const swirlSpeed = mode === "draw"
+                ? (12 + Math.random() * 22)
+                : (4 + Math.random() * 14);
+
+            const vx = inX * inwardSpeed + tangX * swirlSpeed + (Math.random() - 0.5) * 14;
+            const vy = inY * inwardSpeed + tangY * swirlSpeed + (Math.random() - 0.5) * 14 + 4;
+
+            const isGlint = Math.random() < 0.24;
             particles.push({
                 x: px,
                 y: py,
                 vx,
                 vy,
-                size: isSpark ? (2.1 + Math.random() * 1.4) : (0.9 + Math.random() * 1.3),
+                // Razor-fine dust sizes (NOT bubbles!)
+                size: isGlint ? (1.05 + Math.random() * 0.55) : (0.55 + Math.random() * 0.85),
+                glint: isGlint,
+                glintLen: isGlint ? (2.6 + Math.random() * 2.6) : 0,
+                colorIdx: Math.floor(Math.random() * 5),
                 age: 0,
-                life: 2.3 + Math.random() * 2.5,
-                swayAmp: 6 + Math.random() * 10,
-                swayFreq: 1.2 + Math.random() * 1.8,
+                life: 3.4 + Math.random() * 2.8,
+                twinkleFreq: 10 + Math.random() * 14,
                 phase: Math.random() * TAU
             });
         }
     }
 
-    function updateParticles(dt) {
+    function updateParticles(dt, sweeping, sweepAngle) {
+        const drag = Math.pow(0.55, dt);
+        const maxR = innerClipRadius - 1.5;
+
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             p.age += dt;
@@ -1498,109 +1531,177 @@ function createCelestialRingEngine(canvas) {
                 particles.splice(i, 1);
                 continue;
             }
-            p.x += (p.vx + Math.sin(p.age * p.swayFreq + p.phase) * p.swayAmp) * dt;
-            p.y += p.vy * dt;
-            p.vx *= Math.pow(0.86, dt);
-            p.vy *= Math.pow(0.95, dt);
+
+            const dx = p.x - cx;
+            const dy = p.y - cy;
+            const dist = Math.hypot(dx, dy) || 1;
+            const ux = dx / dist;
+            const uy = dy / dist;
+            // Clockwise unit tangent
+            const tx = -uy;
+            const ty = ux;
+
+            if (sweeping) {
+                // Gently carry lingering/fading dust clockwise with the advancing golden border line
+                const pAng = Math.atan2(dy, dx);
+                let delta = pAng - sweepAngle;
+                while (delta > Math.PI) delta -= TAU;
+                while (delta < -Math.PI) delta += TAU;
+                const proximity = Math.exp(-(delta * delta) / 0.75);
+                const push = (14 + 46 * proximity) * dt;
+                p.vx += tx * push - ux * (6 * proximity * dt);
+                p.vy += ty * push - uy * (6 * proximity * dt);
+            } else {
+                // Soft ambient interior swirl while lingering and fading
+                p.vx += tx * (5.5 * dt);
+                p.vy += ty * (5.5 * dt);
+            }
+
+            // Subtle micro-shimmer jitter
+            p.x += (p.vx + Math.sin(p.age * 3.2 + p.phase) * 5.5) * dt;
+            p.y += (p.vy + Math.cos(p.age * 2.7 + p.phase) * 5.5) * dt;
+            p.vx *= drag;
+            p.vy *= drag;
+
+            // Keep every dust grain strictly inside the circle
+            const ndx = p.x - cx;
+            const ndy = p.y - cy;
+            const ndist = Math.hypot(ndx, ndy);
+            if (ndist > maxR) {
+                const scale = maxR / ndist;
+                p.x = cx + ndx * scale;
+                p.y = cy + ndy * scale;
+                // Reflect inward softly
+                const nx = ndx / ndist;
+                const ny = ndy / ndist;
+                p.vx -= nx * 18 * dt;
+                p.vy -= ny * 18 * dt;
+            }
         }
     }
 
-    function drawParticles(pal) {
-        const [hr, hg, hb] = pal.dustHalo;
-        const [cr, cg, cb] = pal.dustCore;
+    function drawInteriorDust(pal) {
+        if (particles.length === 0) return;
 
         ctx.save();
+        // Hard clip strictly inside the timer circle so zero dust ever appears outside
+        ctx.beginPath();
+        ctx.arc(cx, cy, innerClipRadius, 0, TAU);
+        ctx.clip();
+
+        // Subtle warm luminous interior depth while active
+        if (isRunning) {
+            const wash = ctx.createRadialGradient(cx, cy, innerClipRadius * 0.2, cx, cy, innerClipRadius);
+            wash.addColorStop(0, "rgba(0,0,0,0)");
+            wash.addColorStop(1, pal.innerWash);
+            ctx.fillStyle = wash;
+            ctx.fillRect(cx - innerClipRadius, cy - innerClipRadius, innerClipRadius * 2, innerClipRadius * 2);
+        }
+
+        const [gr, gg, gb] = pal.glintArm;
+
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
             const progress = p.age / p.life;
-            const fadeIn = Math.min(1, p.age / 0.16);
-            const fadeOut = Math.pow(1 - progress, 1.55);
-            const twinkle = 0.68 + 0.32 * Math.sin(p.age * 7.5 + p.phase);
+            const fadeIn = Math.min(1, p.age / 0.14);
+            const fadeOut = Math.pow(1 - progress, 1.4);
+            const wave = 0.5 + 0.5 * Math.sin(p.age * p.twinkleFreq + p.phase);
+            const twinkle = 0.18 + 0.82 * wave * wave;
             const alpha = fadeIn * fadeOut * twinkle;
-            if (alpha <= 0.01) continue;
+            if (alpha <= 0.02) continue;
 
-            ctx.beginPath();
-            ctx.fillStyle = `rgba(${hr}, ${hg}, ${hb}, ${(alpha * (pal.dark ? 0.36 : 0.48)).toFixed(3)})`;
-            ctx.arc(p.x, p.y, p.size * (pal.dark ? 2.8 : 2.5), 0, TAU);
-            ctx.fill();
+            const rgb = pal.dustColors[p.colorIdx];
+            ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha.toFixed(3)})`;
 
-            ctx.beginPath();
-            ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${(alpha * 0.96).toFixed(3)})`;
-            ctx.arc(p.x, p.y, p.size, 0, TAU);
-            ctx.fill();
+            // Crisp micro-dust grain (no bubble halo!)
+            const d = p.size * 2;
+            ctx.fillRect(p.x - p.size, p.y - p.size, d, d);
+
+            // Sharp 4-point diamond glitter cross on sparkling specks
+            if (p.glint && wave > 0.55) {
+                const armAlpha = alpha * ((wave - 0.55) / 0.45) * 0.9;
+                const len = p.glintLen * (0.65 + 0.35 * wave);
+                ctx.fillStyle = `rgba(${gr}, ${gg}, ${gb}, ${armAlpha.toFixed(3)})`;
+                ctx.fillRect(p.x - len, p.y - 0.45, len * 2, 0.9);
+                ctx.fillRect(p.x - 0.45, p.y - len, 0.9, len * 2);
+            }
         }
+
         ctx.restore();
     }
 
-    function strokeLuminousArc(startA, endA, pal, alphaScale, widthScale, capStyle) {
+    function drawSmoothGoldenArc(startA, endA, pal, alphaScale, widthScale) {
         if (endA - startA <= 0.002 || alphaScale <= 0.01) return;
-        const cap = capStyle || "round";
-        const baseW = 9.5 * (widthScale || 1);
+        const baseW = 8.5 * (widthScale || 1);
 
         ctx.save();
+        ctx.lineCap = "round";
+
+        // Pass 1: Wide soft golden aura (zero shadowBlur -> locked 60 FPS & zero clipping)
         ctx.globalAlpha = alphaScale;
-        ctx.lineCap = cap;
-
-        // Pass 1: Wide warm golden outer bloom
-        ctx.strokeStyle = pal.outerGlow;
-        ctx.lineWidth = baseW * 1.75;
-        ctx.shadowColor = pal.shadowOuter;
-        ctx.shadowBlur = pal.dark ? 24 : 18;
+        ctx.strokeStyle = pal.bloomWide;
+        ctx.lineWidth = baseW * 2.15;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startA, endA, false);
         ctx.stroke();
 
-        // Pass 2: Rich golden mid-halo
-        ctx.strokeStyle = pal.midGlow;
-        ctx.lineWidth = baseW * 1.08;
-        ctx.shadowColor = pal.shadowMid;
-        ctx.shadowBlur = pal.dark ? 12 : 9;
+        // Pass 2: Warm golden glow
+        ctx.strokeStyle = pal.bloomMid;
+        ctx.lineWidth = baseW * 1.45;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startA, endA, false);
         ctx.stroke();
 
-        // Pass 3: Luminous golden-white core
+        // Pass 3: Main golden border
+        ctx.strokeStyle = pal.goldRing;
+        ctx.lineWidth = baseW * 0.96;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startA, endA, false);
+        ctx.stroke();
+
+        // Pass 4: Crisp warm-white incandescent filament
         ctx.strokeStyle = pal.core;
-        ctx.lineWidth = baseW * 0.56;
-        ctx.shadowBlur = 0;
+        ctx.lineWidth = baseW * 0.42;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startA, endA, false);
         ctx.stroke();
+
         ctx.restore();
     }
 
-    function drawFeatheredDissolve(startA, endA, pal) {
+    function drawRetractingGoldenArc(startA, endA, pal) {
         const rem = endA - startA;
-        if (rem <= 0.005) return;
+        if (rem <= 0.004) return;
 
-        const featherSpan = Math.min(rem, 0.56);
-        const steps = 14;
-        const stepAngle = featherSpan / steps;
+        // Smoothly fade the entire final sliver as it finishes retracting
+        const tailGlobalAlpha = rem < 0.35 ? clamp(rem / 0.35, 0, 1) : 1;
+        const taperSpan = Math.min(rem, 0.32);
 
-        for (let i = 0; i < steps; i++) {
-            const frac = (i + 1) / steps;
-            const segStart = startA + i * stepAngle;
-            const segEnd = segStart + stepAngle + 0.018;
-            const segAlpha = frac * frac;
-            const segWidth = 0.62 + 0.38 * frac;
-            strokeLuminousArc(segStart, Math.min(endA, segEnd), pal, segAlpha, segWidth, "butt");
+        if (rem > taperSpan) {
+            drawSmoothGoldenArc(startA + taperSpan * 0.85, endA, pal, tailGlobalAlpha, 1);
         }
 
-        if (rem > featherSpan) {
-            strokeLuminousArc(startA + featherSpan - 0.02, endA, pal, 1, 1, "round");
+        // Silky overlapping round-cap taper with zero notches
+        const steps = 8;
+        const stepA = taperSpan / steps;
+        for (let i = 0; i < steps; i++) {
+            const frac = (i + 1) / steps;
+            const segStart = startA + i * stepA;
+            const segEnd = Math.min(endA, segStart + stepA * 1.4);
+            drawSmoothGoldenArc(segStart, segEnd, pal, tailGlobalAlpha * frac * frac, 0.45 + 0.55 * frac);
         }
     }
 
     function drawIdleRing(pal) {
         ctx.save();
         ctx.strokeStyle = pal.idleTrack;
-        ctx.lineWidth = 9;
+        ctx.lineWidth = 7.5;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, TAU);
         ctx.stroke();
 
         ctx.strokeStyle = pal.idleRim;
-        ctx.lineWidth = 1.6;
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, TAU);
         ctx.stroke();
@@ -1611,50 +1712,62 @@ function createCelestialRingEngine(canvas) {
         ctx.clearRect(0, 0, cssW, cssH);
         const pal = getPalette();
 
+        // 1. Subtle guide track underneath
         drawIdleRing(pal);
 
+        // 2. High-frequency glittering dust strictly inside the circle
+        drawInteriorDust(pal);
+
+        // 3. Luminous golden-white border ring on top
         if (isRunning || cycleTime > 0) {
             if (cycleTime < DRAW_END) {
                 const p = easeInOutCubic(cycleTime / DRAW_END);
-                if (p > 0.004) {
-                    strokeLuminousArc(TOP, TOP + p * TAU, pal, 1, 1, "round");
+                if (p > 0.003) {
+                    drawSmoothGoldenArc(TOP, TOP + p * TAU, pal, 1, 1);
                 }
             } else if (cycleTime < HOLD_END) {
                 const holdP = (cycleTime - DRAW_END) / (HOLD_END - DRAW_END);
-                const pulse = 1 + 0.08 * Math.sin(holdP * Math.PI);
-                strokeLuminousArc(TOP, TOP + TAU, pal, 1, pulse, "round");
-            } else if (cycleTime < DISSOLVE_END) {
-                const d = easeInOutSine((cycleTime - HOLD_END) / (DISSOLVE_END - HOLD_END));
-                const startA = TOP + d * TAU;
-                const endA = TOP + TAU;
-                drawFeatheredDissolve(startA, endA, pal);
+                const pulse = 1 + 0.06 * Math.sin(holdP * Math.PI);
+                drawSmoothGoldenArc(TOP, TOP + TAU, pal, 1, pulse);
+            } else if (cycleTime < OFF_END) {
+                const d = easeInOutSine((cycleTime - HOLD_END) / (OFF_END - HOLD_END));
+                drawRetractingGoldenArc(TOP + d * TAU, TOP + TAU, pal);
             }
-        }
-
-        if (particles.length > 0) {
-            drawParticles(pal);
+            // OFF_END -> CYCLE_DURATION: golden border is off while interior dust keeps glittering & fading
         }
     }
 
     function loop(ts) {
         if (!lastTs) lastTs = ts;
-        const dt = Math.min(0.05, Math.max(0.001, (ts - lastTs) / 1000));
+        const dt = Math.min(0.033, Math.max(0.001, (ts - lastTs) / 1000));
         lastTs = ts;
+
+        const isMobile = window.innerWidth < 640;
+        let sweeping = false;
+        let sweepAngle = TOP;
 
         if (isRunning) {
             cycleTime = (cycleTime + dt) % CYCLE_DURATION;
 
-            if (cycleTime >= HOLD_END && cycleTime < DISSOLVE_END) {
-                const d = easeInOutSine((cycleTime - HOLD_END) / (DISSOLVE_END - HOLD_END));
-                const startA = TOP + d * TAU;
-                const remainingArc = Math.max(0, (1 - d) * TAU);
-                if (remainingArc > 0.02) {
-                    spawnStardust(startA, remainingArc, dt);
-                }
+            if (cycleTime < DRAW_END) {
+                // Phase 1: Golden border draws from top -> dense high-frequency dust bursts inside
+                const p = easeInOutCubic(cycleTime / DRAW_END);
+                sweepAngle = TOP + p * TAU;
+                sweeping = true;
+                spawnInteriorDust(sweepAngle, Math.min(0.55, p * TAU + 0.08), isMobile ? 145 : 210, dt, "draw");
+            } else if (cycleTime < HOLD_END) {
+                // Phase 2: Full golden ring glows -> fine shimmer across inner perimeter
+                spawnInteriorDust(TOP + Math.random() * TAU, TAU, isMobile ? 55 : 85, dt, "hold");
+            } else if (cycleTime < OFF_END) {
+                // Phase 3: Border turns off clockwise -> gentle wisp of dust sheds inward while interior glitters
+                const d = easeInOutSine((cycleTime - HOLD_END) / (OFF_END - HOLD_END));
+                const tipA = TOP + d * TAU;
+                spawnInteriorDust(tipA, 0.35, isMobile ? 55 : 85, dt, "off");
             }
+            // Phase 4 (OFF_END -> CYCLE_DURATION): Border off, no new dust spawned -> existing dust glitters & fades
         }
 
-        updateParticles(dt);
+        updateParticles(dt, sweeping, sweepAngle);
         drawFrame();
 
         if (isRunning || particles.length > 0) {
