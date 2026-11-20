@@ -20,6 +20,11 @@ const DEFAULT_SETTINGS = {
     autoStart: false
 };
 
+const SHORT_BREAK_MIN = 5;
+const SHORT_BREAK_MAX = 12;
+const LONG_BREAK_MIN = 15;
+const LONG_BREAK_MAX = 50;
+
 const DEFAULT_LABELS = ["Study", "Coding", "Reading", "Work", "General"];
 
 const DEFAULT_LABEL_COLORS = {
@@ -94,6 +99,10 @@ function parseDateKey(key) {
     return new Date(parts[0], parts[1] - 1, parts[2]);
 }
 
+function clamp(val, min, max) {
+    return Math.min(max, Math.max(min, val));
+}
+
 function hexToRgb(hex) {
     const clean = String(hex || "#65a7d6").replace("#", "").trim();
     const full = clean.length === 3
@@ -106,10 +115,10 @@ function hexToRgb(hex) {
 
 function adjustHex(hex, amount) {
     const { r, g, b } = hexToRgb(hex);
-    const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
-    const rr = clamp(r + amount).toString(16).padStart(2, "0");
-    const gg = clamp(g + amount).toString(16).padStart(2, "0");
-    const bb = clamp(b + amount).toString(16).padStart(2, "0");
+    const c = (v) => Math.max(0, Math.min(255, Math.round(v)));
+    const rr = c(r + amount).toString(16).padStart(2, "0");
+    const gg = c(g + amount).toString(16).padStart(2, "0");
+    const bb = c(b + amount).toString(16).padStart(2, "0");
     return `#${rr}${gg}${bb}`;
 }
 
@@ -125,7 +134,13 @@ function makeGhibliGradient(hex) {
     return `linear-gradient(135deg, ${light} 0%, ${hex} 55%, ${deep} 100%)`;
 }
 
+// Enforce Short Break (5-12) and Long Break (15-50) bounds on loaded settings
 let settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON("ff_settings", {}));
+settings.focus = clamp(parseInt(settings.focus, 10) || 25, 1, 180);
+settings.short = clamp(parseInt(settings.short, 10) || SHORT_BREAK_MIN, SHORT_BREAK_MIN, SHORT_BREAK_MAX);
+settings.long = clamp(parseInt(settings.long, 10) || LONG_BREAK_MIN, LONG_BREAK_MIN, LONG_BREAK_MAX);
+saveJSON("ff_settings", settings);
+
 let historyLog = loadJSON("ff_history", []);
 if (!Array.isArray(historyLog)) historyLog = [];
 
@@ -147,6 +162,75 @@ function getLabelColor(labelName) {
 }
 
 let currentUser = null;
+
+// ==========================================
+// IMMERSIVE INTERACTIVE BACKGROUND ENGINE
+// ==========================================
+function initInteractiveBackground() {
+    if (document.getElementById("ambient-cursor-glow")) return;
+
+    const cursorGlow = document.createElement("div");
+    cursorGlow.id = "ambient-cursor-glow";
+    cursorGlow.className = "ambient-cursor-glow";
+    cursorGlow.setAttribute("aria-hidden", "true");
+
+    const breathLayer = document.createElement("div");
+    breathLayer.className = "focus-breath-layer";
+    breathLayer.setAttribute("aria-hidden", "true");
+
+    const particleLayer = document.createElement("div");
+    particleLayer.className = "ambient-particles";
+    particleLayer.setAttribute("aria-hidden", "true");
+
+    const orbCount = window.innerWidth < 640 ? 9 : 15;
+    for (let i = 0; i < orbCount; i++) {
+        const orb = document.createElement("span");
+        orb.className = "ambient-orb";
+        const size = 6 + ((i * 7) % 14);
+        orb.style.width = `${size}px`;
+        orb.style.height = `${size}px`;
+        orb.style.left = `${(i * 17 + 5) % 94}%`;
+        orb.style.animationDuration = `${13 + (i % 6) * 3}s`;
+        orb.style.animationDelay = `-${(i * 2.3).toFixed(1)}s`;
+        orb.style.setProperty("--drift-x", `${(i % 2 === 0 ? 1 : -1) * (12 + (i % 4) * 8)}px`);
+        particleLayer.appendChild(orb);
+    }
+
+    document.body.prepend(particleLayer);
+    document.body.prepend(breathLayer);
+    document.body.prepend(cursorGlow);
+
+    // Smooth cursor-following aurora on desktop/laptop
+    let targetX = window.innerWidth * 0.5;
+    let targetY = window.innerHeight * 0.32;
+    let currX = targetX;
+    let currY = targetY;
+    let rafActive = false;
+
+    function animateAurora() {
+        currX += (targetX - currX) * 0.08;
+        currY += (targetY - currY) * 0.08;
+        cursorGlow.style.left = `${currX}px`;
+        cursorGlow.style.top = `${currY}px`;
+        if (Math.abs(targetX - currX) > 0.5 || Math.abs(targetY - currY) > 0.5) {
+            requestAnimationFrame(animateAurora);
+        } else {
+            rafActive = false;
+        }
+    }
+
+    window.addEventListener("pointermove", (e) => {
+        if (e.pointerType === "touch") return;
+        targetX = e.clientX;
+        targetY = e.clientY;
+        if (!rafActive) {
+            rafActive = true;
+            requestAnimationFrame(animateAurora);
+        }
+    }, { passive: true });
+}
+
+initInteractiveBackground();
 
 // ==========================================
 // 10-THEME FLOATING PALETTE POPOVER ENGINE
@@ -680,7 +764,9 @@ if (timerDisplay) {
     const startPauseBtn = document.getElementById("btn-start-pause");
     const resetBtn = document.getElementById("btn-reset");
     const taskInput = document.getElementById("task-input");
-    const modeButtons = document.querySelectorAll(".mode-btn");
+    const focusModeBtn = document.getElementById("mode-focus-btn");
+    const breakGlideSwitch = document.getElementById("break-glide-switch");
+    const breakGlideOpts = document.querySelectorAll(".break-glide-opt");
     const pillGroupEl = document.getElementById("label-pill-group");
     const quickNotifyBtn = document.getElementById("btn-quick-notify");
     const quoteBanner = document.getElementById("quote-banner");
@@ -699,12 +785,16 @@ if (timerDisplay) {
 
     let timerState = loadJSON("ff_timer_state", {
         mode: "focus",
+        preferredBreak: "short",
         isRunning: false,
         endTime: null,
         remainingSeconds: getModeSeconds("focus"),
         label: sessionLabels[0] || "Study",
         task: ""
     });
+    if (timerState.preferredBreak !== "short" && timerState.preferredBreak !== "long") {
+        timerState.preferredBreak = timerState.mode === "long" ? "long" : "short";
+    }
     if (!sessionLabels.includes(timerState.label)) {
         timerState.label = sessionLabels[0] || "Study";
     }
@@ -991,11 +1081,23 @@ if (timerDisplay) {
         document.title = `${formatted} - FocusFlow`;
         ringEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - (totalSecs > 0 ? rem / totalSecs : 0));
 
-        modeButtons.forEach((btn) => btn.classList.toggle("active", btn.getAttribute("data-mode") === timerState.mode));
+        const isFocus = timerState.mode === "focus";
+        if (focusModeBtn) focusModeBtn.classList.toggle("active", isFocus);
+        if (breakGlideSwitch) {
+            breakGlideSwitch.classList.toggle("break-active", !isFocus);
+            breakGlideSwitch.setAttribute("data-active-break", timerState.preferredBreak);
+        }
+        breakGlideOpts.forEach((opt) => {
+            opt.classList.toggle("active-choice", opt.getAttribute("data-break") === timerState.preferredBreak);
+        });
+
         startPauseBtn.textContent = timerState.isRunning ? "PAUSE" : "START";
         statusEl.textContent = timerState.isRunning
-            ? (timerState.mode === "focus" ? `FOCUSING • ${timerState.label.toUpperCase()}` : "RESTING...")
+            ? (isFocus ? `FOCUSING • ${timerState.label.toUpperCase()}` : (timerState.mode === "long" ? "LONG BREAK..." : "SHORT BREAK..."))
             : "READY";
+
+        // Toggle calm breathing background aura while timer is running
+        document.body.classList.toggle("focus-active", timerState.isRunning);
     }
 
     async function completeSession() {
@@ -1021,7 +1123,8 @@ if (timerDisplay) {
             saveJSON("ff_history", historyLog);
             updateTodayWidgets();
             sendDesktopNotification("Focus Session Complete!", `${settings.focus} min logged under ${entry.label}.`);
-            timerState.mode = "short";
+            // Transition to whichever break the user chose on the gliding switch
+            timerState.mode = timerState.preferredBreak || "short";
         } else {
             sendDesktopNotification("Break Complete!", "Ready for your next calm focus session.");
             timerState.mode = "focus";
@@ -1071,6 +1174,9 @@ if (timerDisplay) {
     function switchMode(newMode) {
         pauseTimer();
         timerState.mode = newMode;
+        if (newMode === "short" || newMode === "long") {
+            timerState.preferredBreak = newMode;
+        }
         timerState.remainingSeconds = getModeSeconds(newMode);
         saveJSON("ff_timer_state", timerState);
         renderTimerUI();
@@ -1078,7 +1184,21 @@ if (timerDisplay) {
 
     startPauseBtn.addEventListener("click", () => (timerState.isRunning ? pauseTimer() : startTimer()));
     resetBtn.addEventListener("click", () => switchMode(timerState.mode));
-    modeButtons.forEach((btn) => btn.addEventListener("click", () => switchMode(btn.getAttribute("data-mode"))));
+
+    if (focusModeBtn) {
+        focusModeBtn.addEventListener("click", () => switchMode("focus"));
+    }
+
+    // User-controlled gliding Short Break / Long Break switch
+    breakGlideOpts.forEach((opt) => {
+        opt.addEventListener("click", () => {
+            const chosenBreak = opt.getAttribute("data-break");
+            if (chosenBreak === "short" || chosenBreak === "long") {
+                timerState.preferredBreak = chosenBreak;
+                switchMode(chosenBreak);
+            }
+        });
+    });
 
     if (quickNotifyBtn) {
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
@@ -1288,7 +1408,7 @@ function drawAnalyticsChart() {
     });
 }
 
-// Date-Wise Analysis Engine (3-Column Desktop + Single-Fill Fix + Dynamic Session Color Border)
+// Date-Wise Analysis Engine (Inline Calendar + Week Roller + Static Per-Color Glare Bar)
 let refreshDateWiseAnalysis = null;
 
 function initDateWiseAnalysis() {
@@ -1296,8 +1416,6 @@ function initDateWiseAnalysis() {
     if (!section) return;
 
     const badgeEl = document.getElementById("dwa-selected-badge");
-    const calBtn = document.getElementById("btn-open-calendar");
-    const calPopover = document.getElementById("dwa-calendar-popover");
     const calPrevBtn = document.getElementById("cal-prev-month");
     const calNextBtn = document.getElementById("cal-next-month");
     const calMonthLabel = document.getElementById("cal-month-label");
@@ -1310,9 +1428,7 @@ function initDateWiseAnalysis() {
     const rollerUpBtn = document.getElementById("roller-up");
     const rollerDownBtn = document.getElementById("roller-down");
 
-    const barFrameEl = document.getElementById("ghibli-bar-frame");
     const stackedBarEl = document.getElementById("dwa-stacked-bar");
-    const legendEl = document.getElementById("dwa-legend");
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1333,38 +1449,6 @@ function initDateWiseAnalysis() {
     let calViewYear = today.getFullYear();
     let calViewMonth = today.getMonth();
     let lastBarSignature = "";
-
-    function applyDynamicBorderColors(colors) {
-        if (!barFrameEl) return;
-        if (!colors || colors.length === 0) {
-            barFrameEl.style.removeProperty("--bar-border-grad");
-            barFrameEl.style.removeProperty("--bar-glow-color");
-            return;
-        }
-
-        if (colors.length === 1) {
-            const c = colors[0];
-            const bright = adjustHex(c, 55);
-            const { r, g, b } = hexToRgb(c);
-            barFrameEl.style.setProperty(
-                "--bar-border-grad",
-                `conic-gradient(from var(--ghibli-angle), transparent 8%, ${c} 28%, ${bright} 52%, #ffffff 62%, ${c} 78%, transparent 94%)`
-            );
-            barFrameEl.style.setProperty("--bar-glow-color", `rgba(${r}, ${g}, ${b}, 0.45)`);
-        } else {
-            const stops = colors.map((c, idx) => {
-                const pct = Math.round((idx / colors.length) * 100);
-                return `${c} ${pct}%`;
-            });
-            stops.push(`${colors[0]} 100%`);
-            const { r, g, b } = hexToRgb(colors[0]);
-            barFrameEl.style.setProperty(
-                "--bar-border-grad",
-                `conic-gradient(from var(--ghibli-angle), ${stops.join(", ")})`
-            );
-            barFrameEl.style.setProperty("--bar-glow-color", `rgba(${r}, ${g}, ${b}, 0.45)`);
-        }
-    }
 
     function animateRoller(direction) {
         if (!rollerDisplay) return;
@@ -1407,48 +1491,95 @@ function initDateWiseAnalysis() {
         const entries = Object.entries(totalsByLabel).sort((a, b) => b[1] - a[1]);
         const signature = selectedDateKey + "|" + entries.map(([l, m]) => `${l}:${m}:${getLabelColor(l)}`).join(",");
 
-        // Prevent double-filling animation if cloud sync returns identical data
         if (!forceAnimate && signature === lastBarSignature) return;
         lastBarSignature = signature;
 
         stackedBarEl.innerHTML = "";
-        legendEl.innerHTML = "";
 
         if (entries.length === 0 || totalMins <= 0) {
-            applyDynamicBorderColors([]);
+            stackedBarEl.classList.add("is-empty");
             stackedBarEl.innerHTML = `<div class="ghibli-empty">No sessions logged on this day.</div>`;
             return;
         }
 
-        const activeColors = entries.map(([lbl]) => getLabelColor(lbl));
-        applyDynamicBorderColors(activeColors);
+        stackedBarEl.classList.remove("is-empty");
 
         entries.forEach(([lbl, mins], idx) => {
             const pct = Math.max(1, Math.round((mins / totalMins) * 100));
             const baseHex = getLabelColor(lbl);
             const bg = makeGhibliGradient(baseHex);
             const textColor = getContrastTextColor(baseHex);
+            const { r, g, b } = hexToRgb(baseHex);
+            const brightEdge = adjustHex(baseHex, 48);
 
             const seg = document.createElement("div");
             seg.className = "ghibli-segment";
-            seg.style.height = `${pct}%`;
-            seg.style.minHeight = "24px";
+            // Flexible proportion + 26px minimum height so text is always readable
+            seg.style.flex = `${pct} 0 26px`;
             seg.style.background = bg;
-            seg.style.animationDelay = `${idx * 0.08}s, ${idx * 0.4}s`;
-            seg.title = `${lbl} - ${pct}% (${mins} min)`;
+            seg.style.setProperty("--seg-edge", brightEdge);
+            seg.style.setProperty("--seg-glow", `rgba(${r}, ${g}, ${b}, 0.56)`);
+            seg.style.setProperty("--seg-glow-strong", `rgba(${r}, ${g}, ${b}, 0.82)`);
+            seg.style.animationDelay = `${idx * 0.07}s`;
+            seg.title = `${lbl} - ${pct}% - ${mins}m`;
 
             const textSpan = document.createElement("span");
             textSpan.className = "ghibli-seg-text";
             textSpan.style.color = textColor;
-            textSpan.textContent = `${lbl} - ${pct}%`;
+            textSpan.textContent = `${lbl} - ${pct}% - ${mins}m`;
             seg.appendChild(textSpan);
             stackedBarEl.appendChild(seg);
-
-            const chip = document.createElement("span");
-            chip.className = "dwa-legend-chip";
-            chip.innerHTML = `<span class="dwa-legend-dot" style="background: ${baseHex};"></span>${escapeHTML(lbl)} - ${pct}% (${mins}m)`;
-            legendEl.appendChild(chip);
         });
+    }
+
+    function renderCalendarGrid() {
+        const loggedDates = new Set(historyLog.map((item) => item.date));
+        const firstDay = new Date(calViewYear, calViewMonth, 1);
+        const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+        const startWeekday = firstDay.getDay();
+
+        calMonthLabel.textContent = firstDay.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+        const isCurrentMonth = (calViewYear === today.getFullYear() && calViewMonth === today.getMonth());
+        calNextBtn.disabled = isCurrentMonth;
+        calNextBtn.style.opacity = isCurrentMonth ? "0.35" : "1";
+
+        calGrid.innerHTML = "";
+
+        for (let i = 0; i < startWeekday; i++) {
+            const blank = document.createElement("span");
+            blank.className = "cal-day-cell empty";
+            calGrid.appendChild(blank);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const cellDate = new Date(calViewYear, calViewMonth, day);
+            const cellKey = getLocalDateKey(cellDate);
+            const isFuture = cellDate > today;
+
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "cal-day-cell";
+            btn.textContent = String(day);
+
+            if (isFuture) {
+                btn.classList.add("future");
+                btn.disabled = true;
+                btn.title = "Future date locked";
+            } else {
+                if (loggedDates.has(cellKey)) btn.classList.add("has-log");
+                if (cellKey === selectedDateKey) btn.classList.add("selected");
+                btn.addEventListener("click", () => {
+                    if (cellKey === selectedDateKey) return;
+                    selectedDateKey = cellKey;
+                    animateRoller("up");
+                    updateRollerUI();
+                    renderCalendarGrid();
+                    renderGhibliBar(true);
+                });
+            }
+            calGrid.appendChild(btn);
+        }
     }
 
     function selectWeekIndex(newIdx, dir) {
@@ -1461,8 +1592,8 @@ function initDateWiseAnalysis() {
         calViewMonth = thisWeekDates[clamped].getMonth();
         if (dir) animateRoller(dir);
         updateRollerUI();
+        renderCalendarGrid();
         renderGhibliBar(true);
-        if (!calPopover.classList.contains("hidden")) renderCalendarGrid();
     }
 
     rollerUpBtn.addEventListener("click", () => selectWeekIndex(weekIndex - 1, "down"));
@@ -1509,104 +1640,22 @@ function initDateWiseAnalysis() {
     rollerViewport.addEventListener("pointerup", endDrag);
     rollerViewport.addEventListener("pointercancel", endDrag);
 
-    function renderCalendarGrid() {
-        const loggedDates = new Set(historyLog.map((item) => item.date));
-        const firstDay = new Date(calViewYear, calViewMonth, 1);
-        const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
-        const startWeekday = firstDay.getDay();
-
-        calMonthLabel.textContent = firstDay.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-
-        const isCurrentMonth = (calViewYear === today.getFullYear() && calViewMonth === today.getMonth());
-        calNextBtn.disabled = isCurrentMonth;
-        calNextBtn.style.opacity = isCurrentMonth ? "0.35" : "1";
-
-        calGrid.innerHTML = "";
-
-        for (let i = 0; i < startWeekday; i++) {
-            const blank = document.createElement("span");
-            blank.className = "cal-day-cell empty";
-            calGrid.appendChild(blank);
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const cellDate = new Date(calViewYear, calViewMonth, day);
-            const cellKey = getLocalDateKey(cellDate);
-            const isFuture = cellDate > today;
-
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "cal-day-cell";
-            btn.textContent = String(day);
-
-            if (isFuture) {
-                btn.classList.add("future");
-                btn.disabled = true;
-            } else {
-                if (loggedDates.has(cellKey)) btn.classList.add("has-log");
-                if (cellKey === selectedDateKey) btn.classList.add("selected");
-                btn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    selectedDateKey = cellKey;
-                    animateRoller("up");
-                    updateRollerUI();
-                    renderGhibliBar(true);
-                    closeCalendar();
-                });
-            }
-            calGrid.appendChild(btn);
-        }
-    }
-
-    function openCalendar() {
-        const currentSel = parseDateKey(selectedDateKey);
-        calViewYear = currentSel.getFullYear();
-        calViewMonth = currentSel.getMonth();
-        renderCalendarGrid();
-        calPopover.classList.remove("hidden");
-        calBtn.classList.add("active");
-        calBtn.setAttribute("aria-expanded", "true");
-    }
-
-    function closeCalendar() {
-        calPopover.classList.add("hidden");
-        calBtn.classList.remove("active");
-        calBtn.setAttribute("aria-expanded", "false");
-    }
-
-    calBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (calPopover.classList.contains("hidden")) openCalendar();
-        else closeCalendar();
-    });
-
-    calPrevBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
+    calPrevBtn.addEventListener("click", () => {
         calViewMonth--;
         if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
         renderCalendarGrid();
     });
 
-    calNextBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
+    calNextBtn.addEventListener("click", () => {
         if (calViewYear === today.getFullYear() && calViewMonth === today.getMonth()) return;
         calViewMonth++;
         if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
         renderCalendarGrid();
     });
 
-    document.addEventListener("click", (e) => {
-        if (!calPopover.classList.contains("hidden") && !calPopover.contains(e.target) && !calBtn.contains(e.target)) {
-            closeCalendar();
-        }
-    });
-
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !calPopover.classList.contains("hidden")) closeCalendar();
-    });
-
     refreshDateWiseAnalysis = () => {
         updateRollerUI();
+        renderCalendarGrid();
         renderGhibliBar(false);
     };
 }
@@ -1618,27 +1667,29 @@ if (document.getElementById("focus-chart")) {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 6);
         const cutoffKey = getLocalDateKey(cutoff);
-        const last7Mins = historyLog.filter((item) => item.date >= cutoffKey).reduce((sum, item) => sum + item.minutes, 0);
+        const last7Logs = historyLog.filter((item) => item.date >= cutoffKey);
+        const last7Mins = last7Logs.reduce((sum, item) => sum + item.minutes, 0);
 
         document.getElementById("metric-streak").textContent = `${streak} Days`;
         document.getElementById("metric-total-mins").textContent = `${totalMins} min`;
         document.getElementById("metric-sessions").textContent = historyLog.length;
         document.getElementById("metric-avg").textContent = `${Math.round(last7Mins / 7)} min`;
 
+        // TIME BY LABEL — LAST 7 DAYS ONLY
         const breakdownEl = document.getElementById("label-breakdown");
         breakdownEl.innerHTML = "";
         const totalsByLabel = {};
-        historyLog.forEach((item) => {
+        last7Logs.forEach((item) => {
             const lbl = item.label || "General";
             totalsByLabel[lbl] = (totalsByLabel[lbl] || 0) + item.minutes;
         });
 
         const entries = Object.entries(totalsByLabel).sort((a, b) => b[1] - a[1]);
         if (entries.length === 0) {
-            breakdownEl.innerHTML = `<p class="muted-text">Complete a session to see your label breakdown.</p>`;
+            breakdownEl.innerHTML = `<p class="muted-text">Complete a session in the last 7 days to see your label breakdown.</p>`;
         } else {
             entries.forEach(([lbl, mins]) => {
-                const pct = totalMins > 0 ? Math.round((mins / totalMins) * 100) : 0;
+                const pct = last7Mins > 0 ? Math.round((mins / last7Mins) * 100) : 0;
                 const fillColor = getLabelColor(lbl);
                 const row = document.createElement("div");
                 row.innerHTML = `
@@ -1692,13 +1743,16 @@ if (settingsForm) {
 
     settingsForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        settings.focus = Math.max(1, parseInt(inpFocus.value, 10) || 25);
-        settings.short = Math.max(1, parseInt(inpShort.value, 10) || 5);
-        settings.long = Math.max(1, parseInt(inpLong.value, 10) || 15);
+        settings.focus = clamp(parseInt(inpFocus.value, 10) || 25, 1, 180);
+        settings.short = clamp(parseInt(inpShort.value, 10) || SHORT_BREAK_MIN, SHORT_BREAK_MIN, SHORT_BREAK_MAX);
+        settings.long = clamp(parseInt(inpLong.value, 10) || LONG_BREAK_MIN, LONG_BREAK_MIN, LONG_BREAK_MAX);
         settings.sound = inpSound.checked;
         settings.soundType = inpSoundType ? inpSoundType.value : "chime";
         settings.autoStart = inpAuto.checked;
 
+        inpFocus.value = settings.focus;
+        inpShort.value = settings.short;
+        inpLong.value = settings.long;
         saveJSON("ff_settings", settings);
 
         const currentTimer = loadJSON("ff_timer_state", null);
@@ -1708,8 +1762,8 @@ if (settingsForm) {
             saveJSON("ff_timer_state", currentTimer);
         }
 
-        feedback.textContent = "Settings saved.";
-        setTimeout(() => { feedback.textContent = ""; }, 2500);
+        feedback.textContent = "Settings saved (Short Break: 5–12m, Long Break: 15–50m).";
+        setTimeout(() => { feedback.textContent = ""; }, 2800);
     });
 
     document.getElementById("btn-test-sound").addEventListener("click", () => {
