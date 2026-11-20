@@ -1490,3 +1490,26 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 [data-theme="rose-quartz"] .label-pill.active {
     border-color: rgba(0, 0, 0, 0.35);
 }
+
+/* =========================================
+   SOLID OPAQUE THEME PALETTE POPOVER
+   ========================================= */
+[data-theme="sage-mist"],
+[data-theme="ocean-breeze"],
+[data-theme="lavender-cloud"],
+[data-theme="warm-peach"],
+[data-theme="rose-quartz"] {
+    --popover-solid: #ffffff;
+}
+
+[data-theme="midnight-pine"] { --popover-solid: #18221f; }
+[data-theme="deep-ocean"]    { --popover-solid: #142232; }
+[data-theme="twilight-plum"] { --popover-solid: #1f1930; }
+[data-theme="amber-dusk"]    { --popover-solid: #271e18; }
+[data-theme="nordic-slate"]  { --popover-solid: #1c232e; }
+
+.theme-popover {
+    background: var(--popover-solid, #ffffff);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
