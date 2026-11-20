@@ -9,7 +9,7 @@ const db = (window.supabase && SUPABASE_KEY !== "PASTE_YOUR_PUBLISHABLE_KEY_HERE
     : null;
 
 // ==========================================
-// DEFAULTS, THEMES, QUOTES & STORAGE HELPERS
+// DEFAULTS, THEMES, LABELS & STORAGE HELPERS
 // ==========================================
 const DEFAULT_SETTINGS = {
     focus: 25,
@@ -19,6 +19,8 @@ const DEFAULT_SETTINGS = {
     soundType: "chime",
     autoStart: false
 };
+
+const DEFAULT_LABELS = ["Study", "Coding", "Reading", "Work", "General"];
 
 const THEME_PALETTE = [
     { id: "sage-mist",      name: "Sage Mist",      gradient: "linear-gradient(135deg, #d7f2e8, #4c8f78)" },
@@ -31,6 +33,17 @@ const THEME_PALETTE = [
     { id: "amber-dusk",     name: "Amber Dusk",     gradient: "linear-gradient(135deg, #291e16, #dfa066)" },
     { id: "rose-quartz",    name: "Rose Quartz",    gradient: "linear-gradient(135deg, #fae0e8, #bd6582)" },
     { id: "nordic-slate",   name: "Nordic Slate",   gradient: "linear-gradient(135deg, #161d26, #7ea8c7)" }
+];
+
+// Soft painterly Studio Ghibli pastel palettes for Date-Wise stacked bars
+const GHIBLI_PALETTES = [
+    "linear-gradient(135deg, #8fd6c0 0%, #58b09c 100%)", // Totoro Forest Teal
+    "linear-gradient(135deg, #f7d996 0%, #e7b564 100%)", // Spirited Bathhouse Gold
+    "linear-gradient(135deg, #f3a6bd 0%, #dd7d9d 100%)", // Sakura Blossom Pink
+    "linear-gradient(135deg, #9ad0ec 0%, #65a7d6 100%)", // Laputa Sky Blue
+    "linear-gradient(135deg, #c6b4f0 0%, #9b84d9 100%)", // Twilight Wisteria
+    "linear-gradient(135deg, #f6be9a 0%, #e09266 100%)", // Kiki Sunset Peach
+    "linear-gradient(135deg, #b8df98 0%, #83bd6a 100%)"  // Meadow Sage
 ];
 
 const MOTIVATIONAL_QUOTES = [
@@ -75,9 +88,19 @@ function getLocalDateKey(dateObj) {
     return `${y}-${m}-${day}`;
 }
 
+function parseDateKey(key) {
+    const parts = key.split("-").map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
 let settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON("ff_settings", {}));
 let historyLog = loadJSON("ff_history", []);
 if (!Array.isArray(historyLog)) historyLog = [];
+let sessionLabels = loadJSON("ff_custom_labels", null);
+if (!Array.isArray(sessionLabels) || sessionLabels.length === 0) {
+    sessionLabels = DEFAULT_LABELS.slice();
+    saveJSON("ff_custom_labels", sessionLabels);
+}
 let currentUser = null;
 
 // ==========================================
@@ -617,7 +640,7 @@ if (timerDisplay) {
     const resetBtn = document.getElementById("btn-reset");
     const taskInput = document.getElementById("task-input");
     const modeButtons = document.querySelectorAll(".mode-btn");
-    const labelPills = document.querySelectorAll(".label-pill");
+    const pillGroupEl = document.getElementById("label-pill-group");
     const quickNotifyBtn = document.getElementById("btn-quick-notify");
     const quoteBanner = document.getElementById("quote-banner");
     const quoteTextEl = document.getElementById("quote-text");
@@ -638,24 +661,191 @@ if (timerDisplay) {
         isRunning: false,
         endTime: null,
         remainingSeconds: getModeSeconds("focus"),
-        label: "Study",
+        label: sessionLabels[0] || "Study",
         task: ""
     });
-    if (!timerState.label) timerState.label = "Study";
+    if (!sessionLabels.includes(timerState.label)) {
+        timerState.label = sessionLabels[0] || "Study";
+    }
 
-    function syncLabelPills() {
-        labelPills.forEach((pill) => {
-            pill.classList.toggle("active", pill.getAttribute("data-label") === timerState.label);
+    // Dynamic Session Label Pills
+    function renderLabelPills() {
+        if (!pillGroupEl) return;
+        pillGroupEl.innerHTML = "";
+        sessionLabels.forEach((lbl) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "label-pill" + (lbl === timerState.label ? " active" : "");
+            btn.textContent = lbl;
+            btn.addEventListener("click", () => {
+                timerState.label = lbl;
+                saveJSON("ff_timer_state", timerState);
+                renderLabelPills();
+                renderTimerUI();
+            });
+            pillGroupEl.appendChild(btn);
         });
     }
 
-    labelPills.forEach((pill) => {
-        pill.addEventListener("click", () => {
-            timerState.label = pill.getAttribute("data-label");
-            saveJSON("ff_timer_state", timerState);
-            syncLabelPills();
+    // Manage Session Labels Modal (Add / Edit / Delete for future sessions only)
+    const labelModal = document.getElementById("label-modal");
+    const openLabelModalBtn = document.getElementById("btn-manage-labels");
+    const closeLabelModalX = document.getElementById("btn-close-label-x");
+    const addLabelForm = document.getElementById("add-label-form");
+    const newLabelInput = document.getElementById("new-label-input");
+    const labelManagerList = document.getElementById("label-manager-list");
+    const labelModalMsg = document.getElementById("label-modal-msg");
+    let editingLabelIndex = -1;
+
+    function showLabelMsg(msg) {
+        if (!labelModalMsg) return;
+        labelModalMsg.textContent = msg;
+        if (msg) setTimeout(() => { if (labelModalMsg.textContent === msg) labelModalMsg.textContent = ""; }, 2400);
+    }
+
+    function renderLabelManager() {
+        if (!labelManagerList) return;
+        labelManagerList.innerHTML = "";
+
+        sessionLabels.forEach((lbl, idx) => {
+            const row = document.createElement("div");
+            row.className = "label-manager-item";
+
+            if (editingLabelIndex === idx) {
+                const inp = document.createElement("input");
+                inp.type = "text";
+                inp.className = "label-edit-input";
+                inp.value = lbl;
+                inp.maxLength = 24;
+
+                const actions = document.createElement("div");
+                actions.className = "label-manager-actions";
+
+                const saveBtn = document.createElement("button");
+                saveBtn.type = "button";
+                saveBtn.className = "btn-mini";
+                saveBtn.textContent = "Save";
+                saveBtn.addEventListener("click", () => {
+                    const updated = inp.value.trim();
+                    if (!updated) { showLabelMsg("Label name cannot be empty."); return; }
+                    const duplicate = sessionLabels.some((item, i) => i !== idx && item.toLowerCase() === updated.toLowerCase());
+                    if (duplicate) { showLabelMsg("That label already exists."); return; }
+
+                    const oldName = sessionLabels[idx];
+                    sessionLabels[idx] = updated;
+                    saveJSON("ff_custom_labels", sessionLabels);
+
+                    if (timerState.label === oldName) {
+                        timerState.label = updated;
+                        saveJSON("ff_timer_state", timerState);
+                    }
+                    editingLabelIndex = -1;
+                    renderLabelPills();
+                    renderLabelManager();
+                    renderTimerUI();
+                    showLabelMsg("Label updated for future sessions.");
+                });
+
+                const cancelBtn = document.createElement("button");
+                cancelBtn.type = "button";
+                cancelBtn.className = "btn-mini";
+                cancelBtn.textContent = "Cancel";
+                cancelBtn.addEventListener("click", () => {
+                    editingLabelIndex = -1;
+                    renderLabelManager();
+                });
+
+                actions.appendChild(saveBtn);
+                actions.appendChild(cancelBtn);
+                row.appendChild(inp);
+                row.appendChild(actions);
+                setTimeout(() => inp.focus(), 20);
+            } else {
+                const nameSpan = document.createElement("span");
+                nameSpan.className = "label-manager-name";
+                nameSpan.textContent = lbl;
+
+                const actions = document.createElement("div");
+                actions.className = "label-manager-actions";
+
+                const editBtn = document.createElement("button");
+                editBtn.type = "button";
+                editBtn.className = "btn-mini";
+                editBtn.textContent = "Edit";
+                editBtn.addEventListener("click", () => {
+                    editingLabelIndex = idx;
+                    renderLabelManager();
+                });
+
+                const delBtn = document.createElement("button");
+                delBtn.type = "button";
+                delBtn.className = "btn-danger-sm";
+                delBtn.textContent = "Delete";
+                delBtn.addEventListener("click", () => {
+                    if (sessionLabels.length <= 1) {
+                        showLabelMsg("Keep at least one session label.");
+                        return;
+                    }
+                    const removed = sessionLabels.splice(idx, 1)[0];
+                    saveJSON("ff_custom_labels", sessionLabels);
+                    if (timerState.label === removed) {
+                        timerState.label = sessionLabels[0];
+                        saveJSON("ff_timer_state", timerState);
+                    }
+                    renderLabelPills();
+                    renderLabelManager();
+                    renderTimerUI();
+                    showLabelMsg(`Deleted "${removed}" (past logs kept).`);
+                });
+
+                actions.appendChild(editBtn);
+                actions.appendChild(delBtn);
+                row.appendChild(nameSpan);
+                row.appendChild(actions);
+            }
+            labelManagerList.appendChild(row);
         });
-    });
+    }
+
+    if (labelModal) {
+        function closeLabelModal() {
+            editingLabelIndex = -1;
+            labelModal.classList.add("hidden");
+        }
+        if (openLabelModalBtn) {
+            openLabelModalBtn.addEventListener("click", () => {
+                editingLabelIndex = -1;
+                renderLabelManager();
+                labelModal.classList.remove("hidden");
+            });
+        }
+        if (closeLabelModalX) closeLabelModalX.addEventListener("click", closeLabelModal);
+        labelModal.addEventListener("click", (e) => { if (e.target === labelModal) closeLabelModal(); });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && !labelModal.classList.contains("hidden")) closeLabelModal();
+        });
+
+        if (addLabelForm) {
+            addLabelForm.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const name = newLabelInput.value.trim();
+                if (!name) return;
+                if (sessionLabels.some((item) => item.toLowerCase() === name.toLowerCase())) {
+                    showLabelMsg("That label already exists.");
+                    return;
+                }
+                sessionLabels.push(name);
+                saveJSON("ff_custom_labels", sessionLabels);
+                timerState.label = name;
+                saveJSON("ff_timer_state", timerState);
+                newLabelInput.value = "";
+                renderLabelPills();
+                renderLabelManager();
+                renderTimerUI();
+                showLabelMsg(`Added "${name}".`);
+            });
+        }
+    }
 
     if (taskInput) {
         taskInput.value = timerState.task || "";
@@ -816,7 +1006,7 @@ if (timerDisplay) {
         });
     }
 
-    syncLabelPills();
+    renderLabelPills();
     updateTodayWidgets();
     renderTimerUI();
 
@@ -848,6 +1038,22 @@ if (fullHistoryList) {
     const countText = document.getElementById("history-count-text");
     const totalText = document.getElementById("history-total-text");
     const clearAllBtn = document.getElementById("btn-clear-history");
+
+    function populateHistoryLabelFilter() {
+        if (!labelFilter) return;
+        const prev = labelFilter.value || "ALL";
+        const allLabels = new Set(sessionLabels);
+        historyLog.forEach((item) => allLabels.add(item.label || "General"));
+
+        labelFilter.innerHTML = `<option value="ALL">All Labels</option>`;
+        Array.from(allLabels).forEach((lbl) => {
+            const opt = document.createElement("option");
+            opt.value = lbl;
+            opt.textContent = lbl;
+            labelFilter.appendChild(opt);
+        });
+        labelFilter.value = Array.from(allLabels).includes(prev) ? prev : "ALL";
+    }
 
     function renderFullHistory() {
         const query = (searchInput.value || "").trim().toLowerCase();
@@ -907,8 +1113,12 @@ if (fullHistoryList) {
         }
     });
 
+    populateHistoryLabelFilter();
     renderFullHistory();
-    authReady.then(() => syncLogsFromCloud().then(renderFullHistory));
+    authReady.then(() => syncLogsFromCloud().then(() => {
+        populateHistoryLabelFilter();
+        renderFullHistory();
+    }));
 }
 
 // ==========================================
@@ -990,6 +1200,302 @@ function drawAnalyticsChart() {
     });
 }
 
+// Date-Wise Analysis Engine (This Week Only Roller + Past Calendar + Ghibli Stacked Bar)
+let refreshDateWiseAnalysis = null;
+
+function initDateWiseAnalysis() {
+    const section = document.getElementById("date-wise-section");
+    if (!section) return;
+
+    const badgeEl = document.getElementById("dwa-selected-badge");
+    const calBtn = document.getElementById("btn-open-calendar");
+    const calPopover = document.getElementById("dwa-calendar-popover");
+    const calPrevBtn = document.getElementById("cal-prev-month");
+    const calNextBtn = document.getElementById("cal-next-month");
+    const calMonthLabel = document.getElementById("cal-month-label");
+    const calGrid = document.getElementById("cal-days-grid");
+
+    const rollerViewport = document.getElementById("day-roller");
+    const rollerDisplay = document.getElementById("day-roller-display");
+    const rollerDayName = document.getElementById("roller-day-name");
+    const rollerDaySub = document.getElementById("roller-day-sub");
+    const rollerUpBtn = document.getElementById("roller-up");
+    const rollerDownBtn = document.getElementById("roller-down");
+
+    const stackedBarEl = document.getElementById("dwa-stacked-bar");
+    const legendEl = document.getElementById("dwa-legend");
+
+    // Build current week strictly Sunday (0) through Saturday (6)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayKey = getLocalDateKey(today);
+
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - today.getDay());
+
+    const thisWeekDates = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(sunday);
+        d.setDate(sunday.getDate() + i);
+        thisWeekDates.push(d);
+    }
+
+    let selectedDateKey = todayKey;
+    let weekIndex = today.getDay(); // 0 = Sun ... 6 = Sat
+    let calViewYear = today.getFullYear();
+    let calViewMonth = today.getMonth();
+
+    function getGhibliColor(labelName, index) {
+        let hash = 0;
+        for (let i = 0; i < labelName.length; i++) {
+            hash = (hash * 31 + labelName.charCodeAt(i)) | 0;
+        }
+        return GHIBLI_PALETTES[Math.abs(hash + index) % GHIBLI_PALETTES.length];
+    }
+
+    function animateRoller(direction) {
+        if (!rollerDisplay) return;
+        rollerDisplay.classList.remove("roll-anim-up", "roll-anim-down");
+        void rollerDisplay.offsetWidth;
+        rollerDisplay.classList.add(direction === "up" ? "roll-anim-up" : "roll-anim-down");
+    }
+
+    function updateRollerUI() {
+        const d = parseDateKey(selectedDateKey);
+        const dayLong = d.toLocaleDateString(undefined, { weekday: "long" });
+        const shortSub = d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+        const fullLabel = d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+        rollerDayName.textContent = dayLong;
+        rollerDaySub.textContent = shortSub;
+        badgeEl.textContent = selectedDateKey === todayKey ? `Today • ${shortSub}` : fullLabel;
+
+        const inThisWeekIdx = thisWeekDates.findIndex((wd) => getLocalDateKey(wd) === selectedDateKey);
+        if (inThisWeekIdx !== -1) {
+            weekIndex = inThisWeekIdx;
+            rollerUpBtn.disabled = weekIndex <= 0;
+            rollerDownBtn.disabled = weekIndex >= 6;
+        } else {
+            rollerUpBtn.disabled = false;
+            rollerDownBtn.disabled = false;
+        }
+    }
+
+    function renderGhibliBar() {
+        const daySessions = historyLog.filter((item) => item.date === selectedDateKey);
+        const totalMins = daySessions.reduce((sum, item) => sum + item.minutes, 0);
+
+        stackedBarEl.innerHTML = "";
+        legendEl.innerHTML = "";
+
+        if (daySessions.length === 0 || totalMins <= 0) {
+            stackedBarEl.innerHTML = `<div class="ghibli-empty">No sessions logged on this day.</div>`;
+            return;
+        }
+
+        const totalsByLabel = {};
+        daySessions.forEach((item) => {
+            const lbl = item.label || "General";
+            totalsByLabel[lbl] = (totalsByLabel[lbl] || 0) + item.minutes;
+        });
+
+        const entries = Object.entries(totalsByLabel).sort((a, b) => b[1] - a[1]);
+
+        entries.forEach(([lbl, mins], idx) => {
+            const pct = Math.max(1, Math.round((mins / totalMins) * 100));
+            const bg = getGhibliColor(lbl, idx);
+
+            const seg = document.createElement("div");
+            seg.className = "ghibli-segment";
+            seg.style.height = `${pct}%`;
+            seg.style.minHeight = "24px";
+            seg.style.background = bg;
+            seg.style.animationDelay = `${idx * 0.08}s, ${idx * 0.4}s`;
+            seg.title = `${lbl} - ${pct}% (${mins} min)`;
+
+            const textSpan = document.createElement("span");
+            textSpan.className = "ghibli-seg-text";
+            textSpan.textContent = `${lbl} - ${pct}%`;
+            seg.appendChild(textSpan);
+            stackedBarEl.appendChild(seg);
+
+            const chip = document.createElement("span");
+            chip.className = "dwa-legend-chip";
+            chip.innerHTML = `<span class="dwa-legend-dot" style="background: ${bg};"></span>${escapeHTML(lbl)} - ${pct}% (${mins}m)`;
+            legendEl.appendChild(chip);
+        });
+    }
+
+    function selectWeekIndex(newIdx, dir) {
+        const clamped = Math.max(0, Math.min(6, newIdx));
+        const targetKey = getLocalDateKey(thisWeekDates[clamped]);
+        if (targetKey === selectedDateKey && clamped === weekIndex) return;
+        weekIndex = clamped;
+        selectedDateKey = targetKey;
+        calViewYear = thisWeekDates[clamped].getFullYear();
+        calViewMonth = thisWeekDates[clamped].getMonth();
+        if (dir) animateRoller(dir);
+        updateRollerUI();
+        renderGhibliBar();
+        if (!calPopover.classList.contains("hidden")) renderCalendarGrid();
+    }
+
+    // Arrow buttons (Sun -> Sat)
+    rollerUpBtn.addEventListener("click", () => selectWeekIndex(weekIndex - 1, "down"));
+    rollerDownBtn.addEventListener("click", () => selectWeekIndex(weekIndex + 1, "up"));
+
+    // PC / Laptop Mouse Wheel Scrolling
+    let lastWheelAt = 0;
+    rollerViewport.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastWheelAt < 140) return;
+        lastWheelAt = now;
+        if (e.deltaY > 0) selectWeekIndex(weekIndex + 1, "up");
+        else if (e.deltaY < 0) selectWeekIndex(weekIndex - 1, "down");
+    }, { passive: false });
+
+    // Mobile / Tablet Touch & Pointer Dragging
+    let dragStartY = null;
+    let dragAccum = 0;
+    const DRAG_STEP_PX = 28;
+
+    rollerViewport.addEventListener("pointerdown", (e) => {
+        dragStartY = e.clientY;
+        dragAccum = 0;
+        if (rollerViewport.setPointerCapture) {
+            try { rollerViewport.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+    });
+
+    rollerViewport.addEventListener("pointermove", (e) => {
+        if (dragStartY === null) return;
+        const delta = e.clientY - dragStartY;
+        dragStartY = e.clientY;
+        dragAccum += delta;
+
+        if (dragAccum <= -DRAG_STEP_PX) {
+            dragAccum = 0;
+            selectWeekIndex(weekIndex + 1, "up");
+        } else if (dragAccum >= DRAG_STEP_PX) {
+            dragAccum = 0;
+            selectWeekIndex(weekIndex - 1, "down");
+        }
+    });
+
+    function endDrag() {
+        dragStartY = null;
+        dragAccum = 0;
+    }
+    rollerViewport.addEventListener("pointerup", endDrag);
+    rollerViewport.addEventListener("pointercancel", endDrag);
+
+    // Custom Calendar Grid (All Past Dates + Hover Effects)
+    function renderCalendarGrid() {
+        const loggedDates = new Set(historyLog.map((item) => item.date));
+        const firstDay = new Date(calViewYear, calViewMonth, 1);
+        const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+        const startWeekday = firstDay.getDay();
+
+        calMonthLabel.textContent = firstDay.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+        // Disable navigating past current month
+        const isCurrentMonth = (calViewYear === today.getFullYear() && calViewMonth === today.getMonth());
+        calNextBtn.disabled = isCurrentMonth;
+        calNextBtn.style.opacity = isCurrentMonth ? "0.35" : "1";
+
+        calGrid.innerHTML = "";
+
+        for (let i = 0; i < startWeekday; i++) {
+            const blank = document.createElement("span");
+            blank.className = "cal-day-cell empty";
+            calGrid.appendChild(blank);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const cellDate = new Date(calViewYear, calViewMonth, day);
+            const cellKey = getLocalDateKey(cellDate);
+            const isFuture = cellDate > today;
+
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "cal-day-cell";
+            btn.textContent = String(day);
+
+            if (isFuture) {
+                btn.classList.add("future");
+                btn.disabled = true;
+            } else {
+                if (loggedDates.has(cellKey)) btn.classList.add("has-log");
+                if (cellKey === selectedDateKey) btn.classList.add("selected");
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    selectedDateKey = cellKey;
+                    animateRoller("up");
+                    updateRollerUI();
+                    renderGhibliBar();
+                    closeCalendar();
+                });
+            }
+            calGrid.appendChild(btn);
+        }
+    }
+
+    function openCalendar() {
+        const currentSel = parseDateKey(selectedDateKey);
+        calViewYear = currentSel.getFullYear();
+        calViewMonth = currentSel.getMonth();
+        renderCalendarGrid();
+        calPopover.classList.remove("hidden");
+        calBtn.classList.add("active");
+        calBtn.setAttribute("aria-expanded", "true");
+    }
+
+    function closeCalendar() {
+        calPopover.classList.add("hidden");
+        calBtn.classList.remove("active");
+        calBtn.setAttribute("aria-expanded", "false");
+    }
+
+    calBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (calPopover.classList.contains("hidden")) openCalendar();
+        else closeCalendar();
+    });
+
+    calPrevBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        calViewMonth--;
+        if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+        renderCalendarGrid();
+    });
+
+    calNextBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (calViewYear === today.getFullYear() && calViewMonth === today.getMonth()) return;
+        calViewMonth++;
+        if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+        renderCalendarGrid();
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!calPopover.classList.contains("hidden") && !calPopover.contains(e.target) && !calBtn.contains(e.target)) {
+            closeCalendar();
+        }
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !calPopover.classList.contains("hidden")) closeCalendar();
+    });
+
+    refreshDateWiseAnalysis = () => {
+        updateRollerUI();
+        renderGhibliBar();
+    };
+
+    refreshDateWiseAnalysis();
+}
+
 if (document.getElementById("focus-chart")) {
     function renderAnalytics() {
         const totalMins = historyLog.reduce((sum, item) => sum + item.minutes, 0);
@@ -1030,8 +1536,10 @@ if (document.getElementById("focus-chart")) {
             });
         }
         drawAnalyticsChart();
+        if (refreshDateWiseAnalysis) refreshDateWiseAnalysis();
     }
 
+    initDateWiseAnalysis();
     window.addEventListener("resize", drawAnalyticsChart);
     renderAnalytics();
     authReady.then(() => syncLogsFromCloud().then(renderAnalytics));
